@@ -1,0 +1,257 @@
+<html>
+  <head>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <link rel="stylesheet" href="/bower_components/components-font-awesome/css/font-awesome.min.css">
+  </head>
+  <body>
+    <div id="app">
+      <div class="container mt-2">
+        <div v-if="initialized && isLogin">
+          <button type="button" class="btn btn-outline-warning pull-right" @click="logout">로그아웃</button>
+        </div>
+        <h2>SRT 자동 티켓팅 메크로</h2>
+        <div class="alert alert-warning" role="alert" v-if="!initialized">
+          <i class="fa fa-spinner fa-spin"></i>
+          <span>로딩 ...</span>
+        </div>
+        <login-form v-if="initialized && !isLogin" @login-succeed="loginSucceed"></login-form>
+        <train-request-form v-if="initialized && isLogin" @train-searched="trainSearched"></train-request-form>
+        <train-list v-if="initialized && isLogin && trainSearchRequested" :train-list="searchedTrain"></train-list>
+      </div>
+    </div>
+    <template id="loginForm">
+      <div>
+        <h4>로그인</h4>
+        <form>
+          <div class="form-group">
+            <label for="userNumber">회원번호</label>
+            <input type="text" class="form-control" v-model="userNumber" id="userNumber" placeholder="회원번호">
+          </div>
+          <div class="form-group">
+            <label for="userPassword">비밀번호</label>
+            <input type="password" class="form-control" v-model="userPassword" id="userEmail" placeholder="비밀번호">
+          </div>
+          <div class="alert alert-warning alert-dismissible fade show" role="alert">
+            <strong>안심하세요!</strong> 서버에 어떠한 개인 정보도 남기지 않습니다.
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <button type="submit" class="btn btn-primary" @click.prevent="login">로그인</button>
+        </form>
+      </div>
+    </template>
+    <template id="trainRequestForm">
+      <div>
+        <h4>열차 조회</h4>
+        <form>
+          <div class="form-group">
+            <label for="stationSelectStart">출발지</label>
+            <select class="form-control" id="stationSelectStart" v-model="selectedStartStation">
+              <option disabled value="">선택</option>
+              <option v-for="station in stationList" :key="station.id" v-bind:value="station.id">{{station.name}}</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="stationSelectEnd">도착지</label>
+            <select class="form-control" id="stationSelectEnd" v-model="selectedEndStation">
+              <option disabled value="">선택</option>
+              <option v-for="station in stationList" :key="station.id" v-bind:value="station.id">{{station.name}}</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="dateSelect">날짜</label>
+            <input type="date" class="form-control" id="dateSelect" v-model="selectedDate">
+          </div>
+          <div class="form-group">
+            <label for="timeSelect">시간</label>
+            <select class="form-control" id="timeSelect">
+              <option v-for="timeDiff in timeDiffList">{{timeDiff}}</option>
+            </select>
+          </div>
+          <button type="submit" class="btn btn-primary" :disabled="!checkForm" @click.prevent="getTrainList">조회</button>
+        </form>
+      </div>
+    </template>
+    <template id="trainList">
+      <div>
+        <h4>열차 선택</h4>
+        <div>
+          <table class="table">
+            <thead>
+              <tr>
+                <th scope="col">열차 번호</th>
+                <th scope="col">출발</th>
+                <th scope="col">도착</th>
+                <th scope="col">소요시간</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th scope="row">1</th>
+                <td>Mark</td>
+                <td>Otto</td>
+                <td>@mdo</td>
+              </tr>
+            </tbody>
+          </table>
+          <ul class="list-group">
+            <li class="list-group-item" v-for="train in trainList">
+              <div class="row">
+                <div class="col-6">
+                  <p>열차 번호: {{train.trainNumber}}</p>
+                  <p>출발: {{train.startTime}}</p>
+                  <p>도착: {{train.endTime}}</p>
+                  <p>소요시간: {{train.duration}}</p>
+                </div>
+                <div class="col-6">
+                  <p>일반실 <button type="button" class="btn btn-success">추가</button></p>
+                  <p>특실 <button type="button" class="btn btn-success">추가</button></p>
+                </div>
+              </div>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </template>
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
+    <script src="http://underscorejs.org/underscore-min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue"></script>
+    <script type="text/javascript">
+      // This is simple program. so I don't want to split files for develop.
+      Vue.component('trainRequestForm', {
+        template: '#trainRequestForm',
+        data: function () {
+          return {
+            stationList: [],
+            timeDiffList: ['00', '02', '04', '06', '08', '10', '12', '14', '16', '18', '20', '22'],
+            selectedStartStation: '',
+            selectedEndStation: '',
+            selectedDate: (new Date()).toISOString().substring(0, 10),
+            selectedTime: '00'
+          }
+        },
+        computed: {
+          checkForm: function() {
+            return this.selectedStartStation !== '' && this.selectedEndStation !== '';
+          }
+        },
+        methods: {
+          getTrainList: function() {
+            var selectedDate = _.clone(this.selectedDate).replace(/-/g, '');
+            var selectedStartStation = this.selectedStartStation;
+            var selectedStartStationName = _.find(this.stationList, function(sl) {
+              return sl.id == selectedStartStation;
+            }).name;
+            var selectedEndStation = this.selectedEndStation;
+            var selectedEndStationName = _.find(this.stationList, function(sl) {
+              return sl.id == selectedEndStation;
+            }).name;
+            $.get({
+              url: '/trainList',
+              data: {
+                startStation: selectedStartStationName,
+                startStationNumber: selectedStartStation,
+                endStation: selectedEndStationName,
+                endStationNumber: selectedEndStation,
+                requestDate: selectedDate,
+                requestTime: this.selectedTime + '00'
+              },
+              success: function(data, textStatus, request) {
+                this.$emit('train-searched', data);
+              }.bind(this),
+              error: function(request, textStatus, errorThrown) {}.bind(this)
+            })
+          }
+        },
+        created: function() {
+          $.get({
+            url:'/stationList',
+            success: function(data, textStatus, request) {
+              this.stationList = data;
+            }.bind(this),
+            error: function(request, textStatus, errorThrown) {}.bind(this)
+          })
+        }
+      });
+      Vue.component('trainList', {
+        template: '#trainList',
+        data: function() {
+          return {}
+        },
+        props: ['trainList']
+      });
+      Vue.component('loginForm', {
+        template: '#loginForm',
+        data: function() {
+          return {
+            userNumber: "",
+            userPassword: ""
+          }
+        },
+        methods: {
+          login: function() {
+            $.post({
+              url:'/login',
+              data: {
+                userNumber: this.userNumber,
+                userPassword: this.userPassword
+              },
+              success: function(data, textStatus, request) {
+                this.$emit('login-succeed');
+              }.bind(this),
+              error: function(request, textStatus, errorThrown) {
+                alert('유저 번호나 비밀번호가 틀렸습니다.');
+              }.bind(this)
+            });
+          }
+        }
+      });
+      new Vue({
+        el: '#app',
+        data: {
+          isLogin: false,
+          initialized: false,
+          trainSearchRequested: false,
+          searchedTrain: []
+        },
+        methods: {
+          loginSucceed: function() {
+            this.isLogin = true;
+          },
+          logout: function() {
+            $.post({
+              url:'/logout',
+              success: function(data, textStatus, request) {
+                this.isLogin = false
+              }.bind(this),
+              error: function(request, textStatus, errorThrown) {
+              }.bind(this)
+            })
+          },
+          trainSearched: function(data) {
+            this.searchedTrain = data;
+            this.trainSearchRequested = true;
+          }
+        },
+        created: function() {
+          // 로그인 체크
+          $.post({
+            url:'/checkLogin',
+            success: function(data, textStatus, request) {
+              this.isLogin = true
+            }.bind(this),
+            error: function(request, textStatus, errorThrown) {
+              this.isLogin = false
+            }.bind(this),
+            complete: function() {
+              this.initialized = true
+            }.bind(this)
+          });
+        }
+      });
+    </script>
+  </body>
+</html>

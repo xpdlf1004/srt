@@ -2,25 +2,51 @@
   <head>
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
     <link rel="stylesheet" href="/bower_components/components-font-awesome/css/font-awesome.min.css">
+    <link rel="stylesheet" href="/common.css">
   </head>
   <body>
     <div id="app">
-      <div class="container mt-2">
-        <div v-if="initialized && isLogin">
-          <button type="button" class="btn btn-outline-warning pull-right" @click="logout">로그아웃</button>
+      <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <a class="navbar-brand" href="#">SRT 메크로</a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarSupportedContent">
+          <ul class="navbar-nav mr-auto">
+            <li class="nav-item active">
+              <!--
+                <a class="nav-link" href="#">Home</a>
+              -->
+            </li>
+          </ul>
+          <ul class="navbar-nav">
+            <li class="nav-item" v-if="initialized && isLogin">
+              <a class="nav-link" href="#" @click="logout">로그아웃</a>
+            </li>
+          </ul>
         </div>
-        <h2>SRT 자동 티켓팅 메크로</h2>
-        <div class="alert alert-warning" role="alert" v-if="!initialized">
-          <i class="fa fa-spinner fa-spin"></i>
-          <span>로딩 ...</span>
+      </nav>
+      <div class="w-100">
+        <loading v-if="!initialized"></loading>
+        <div v-if="initialized && !isLogin" class="login-form-container py-3">
+          <login-form @login-succeed="loginSucceed"></login-form>
         </div>
-        <login-form v-if="initialized && !isLogin" @login-succeed="loginSucceed"></login-form>
-        <train-request-form v-if="initialized && isLogin" @train-searched="trainSearched"></train-request-form>
+        <div v-if="initialized && isLogin" class="train-request-form-container py-3">
+          <train-request-form  @train-searched="trainSearched"></train-request-form>
+        </div>
         <train-list v-if="initialized && isLogin && trainSearchRequested" :train-list="searchedTrain"></train-list>
       </div>
     </div>
-    <template id="loginForm">
+    <template id="loading">
       <div>
+        <div class="alert alert-warning mt-3 mb-3" role="alert">
+          <i class="fa fa-spinner fa-spin"></i>
+          <span>로딩 ...</span>
+        </div>
+      </div>
+    </template>
+    <template id="loginForm">
+      <div class="container">
         <h4>로그인</h4>
         <form>
           <div class="form-group">
@@ -42,7 +68,7 @@
       </div>
     </template>
     <template id="trainRequestForm">
-      <div>
+      <div class="container">
         <h4>열차 조회</h4>
         <form>
           <div class="form-group">
@@ -84,33 +110,21 @@
                 <th scope="col">출발</th>
                 <th scope="col">도착</th>
                 <th scope="col">소요시간</th>
+                <th scope="col">일반실</th>
+                <th scope="col">특실</th>
               </tr>
             </thead>
             <tbody>
-              <tr>
-                <th scope="row">1</th>
-                <td>Mark</td>
-                <td>Otto</td>
-                <td>@mdo</td>
+              <tr v-for="train in trainList">
+                <th scope="row">{{train.trainNumber}}</th>
+                <td>{{train.startTime}}</td>
+                <td>{{train.endTime}}</td>
+                <td>{{train.duration}}</td>
+                <td><button type="button" class="btn btn-success">등록</button></td>
+                <td><button type="button" class="btn btn-success">등록</button></td>
               </tr>
             </tbody>
           </table>
-          <ul class="list-group">
-            <li class="list-group-item" v-for="train in trainList">
-              <div class="row">
-                <div class="col-6">
-                  <p>열차 번호: {{train.trainNumber}}</p>
-                  <p>출발: {{train.startTime}}</p>
-                  <p>도착: {{train.endTime}}</p>
-                  <p>소요시간: {{train.duration}}</p>
-                </div>
-                <div class="col-6">
-                  <p>일반실 <button type="button" class="btn btn-success">추가</button></p>
-                  <p>특실 <button type="button" class="btn btn-success">추가</button></p>
-                </div>
-              </div>
-            </li>
-          </ul>
         </div>
       </div>
     </template>
@@ -121,6 +135,9 @@
     <script src="https://cdn.jsdelivr.net/npm/vue"></script>
     <script type="text/javascript">
       // This is simple program. so I don't want to split files for develop.
+      Vue.component('loading', {
+        template: '#loading'
+      });
       Vue.component('trainRequestForm', {
         template: '#trainRequestForm',
         data: function () {

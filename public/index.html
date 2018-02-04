@@ -28,15 +28,20 @@
       </nav>
       <div class="w-100">
         <loading v-if="!initialized"></loading>
-        <div v-if="initialized && !isLogin" class="login-form-container py-3">
+        <div v-if="initialized && !isLogin" class="py-3">
           <login-form @login-succeed="loginSucceed"></login-form>
         </div>
-        <div v-if="initialized && isLogin" class="train-request-form-container py-3">
+        <div v-if="initialized && isLogin" class="py-3">
+          <!-- 메크로리스트 -->
+          <macro-list class="pb-3"></macro-list>
+          <!-- 열차 조회 -->
           <train-request-form  @train-searched="trainSearched"></train-request-form>
+          <!-- 조회 결과 -->
+          <train-list v-if="trainSearchRequested" :train-list="searchedTrain"></train-list>
         </div>
-        <train-list v-if="initialized && isLogin && trainSearchRequested" :train-list="searchedTrain"></train-list>
       </div>
     </div>
+    <!-- 템플릿 -->
     <template id="loading">
       <div>
         <div class="alert alert-warning mt-3 mb-3" role="alert">
@@ -100,7 +105,7 @@
       </div>
     </template>
     <template id="trainList">
-      <div>
+      <div class="container">
         <h4>열차 선택</h4>
         <div>
           <table class="table">
@@ -128,6 +133,26 @@
         </div>
       </div>
     </template>
+    <template id="macroList">
+      <div class="container">
+        <h4>메크로 리스트</h4>
+        <ul class="list-inline">
+          <li class="list-inline-item">
+            <div class="card mb-3">
+              <div class="card-body">
+                <h5 class="card-title"><i class="fa fa-spinner fa-spin"></i> 동작중 ...</h5>
+                <p class="card-text">
+                  출발 : 수서 05:30 <br/>
+                  도착 : 부산 07:30 <br/>
+                  번호 : 318 <br/>
+                </p>
+                <a href="#" class="card-link">삭제</a>
+              </div>
+            </div>
+          </li>
+        </ul>
+      </div>
+    </template>
     <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
     <script src="http://underscorejs.org/underscore-min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
@@ -135,6 +160,9 @@
     <script src="https://cdn.jsdelivr.net/npm/vue"></script>
     <script type="text/javascript">
       // This is simple program. so I don't want to split files for develop.
+      Vue.component('macroList', {
+        template: '#macroList'
+      });
       Vue.component('loading', {
         template: '#loading'
       });

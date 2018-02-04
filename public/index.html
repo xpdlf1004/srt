@@ -96,7 +96,7 @@
           </div>
           <div class="form-group">
             <label for="timeSelect">시간</label>
-            <select class="form-control" id="timeSelect">
+            <select class="form-control" id="timeSelect" v-model="selectedTime">
               <option v-for="timeDiff in timeDiffList">{{timeDiff}}</option>
             </select>
           </div>
@@ -136,15 +136,45 @@
     <template id="macroList">
       <div class="container">
         <h4>메크로 리스트</h4>
+        <p>등록된 메크로가 없습니다.</p>
         <ul class="list-inline">
           <li class="list-inline-item">
-            <div class="card mb-3">
+            <div class="card mb-2">
               <div class="card-body">
                 <h5 class="card-title"><i class="fa fa-spinner fa-spin"></i> 동작중 ...</h5>
                 <p class="card-text">
-                  출발 : 수서 05:30 <br/>
-                  도착 : 부산 07:30 <br/>
-                  번호 : 318 <br/>
+                  번호 : 318<br/>
+                  출발 : 수서 05:30<br/>
+                  도착 : 부산 07:30<br/>
+                  종류 : 일반실
+                </p>
+                <a href="#" class="card-link">삭제</a>
+              </div>
+            </div>
+          </li>
+          <li class="list-inline-item">
+            <div class="card mb-2">
+              <div class="card-body">
+                <h5 class="card-title text-success">예약완료</h5>
+                <p class="card-text">
+                  번호 : 332<br/>
+                  출발 : 수서 07:30<br/>
+                  도착 : 부산 10:00<br/>
+                  종류 : 특실
+                </p>
+                <a href="#" class="card-link">결제하기</a>
+              </div>
+            </div>
+          </li>
+          <li class="list-inline-item">
+            <div class="card mb-2">
+              <div class="card-body">
+                <h5 class="card-title text-danger">중단</h5>
+                <p class="card-text">
+                  번호 : 318<br/>
+                  출발 : 수서 05:30<br/>
+                  도착 : 부산 07:30<br/>
+                  종류 : 일반실
                 </p>
                 <a href="#" class="card-link">삭제</a>
               </div>
@@ -268,7 +298,7 @@
           },
           logout: function() {
             $.post({
-              url:'/logout',
+              url:'/reserveTrain',
               success: function(data, textStatus, request) {
                 this.isLogin = false
               }.bind(this),

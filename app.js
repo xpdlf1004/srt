@@ -22,10 +22,8 @@ app.use(session({
   saveUninitialized: true
 }))
 
-axios.defaults.baseURL = 'https://etk.srail.co.kr';
-
 app.post('/login', function(req, res) {
-  axios.post('/cmc/01/selectLoginInfo.do?pageId=TK0701000000', qs.stringify({
+  axios.post('https://etk.srail.co.kr/cmc/01/selectLoginInfo.do?pageId=TK0701000000', qs.stringify({
     srchDvNm: req.body.userNumber,
     hmpgPwdCphd: req.body.userPassword,
     srchDvCd: '1'
@@ -46,6 +44,70 @@ app.post('/login', function(req, res) {
   });
 });
 
+app.post('/kakaoLogin', function(req, res) {
+  var accessToken = req.body.accessToken;
+  var refreshToken = req.body.refreshToken;
+  var expiresIn = req.body.expiresIn;
+  req.session['KAKAO_ACCESS_KEY'] = accessToken;
+  req.session['KAKAO_REFRESH_KEY'] = refreshToken;
+  req.session['KAKAO_EXPIRED'] = (new Date()).getTime() + (expiresIn * 1000);
+  res.status(200).send('ok');
+});
+
+app.post('/kakaoMessage', function(req, res) {
+  function requestToken(refreshToken) {
+    return axios.post('https://kauth.kakao.com/oauth/token', qs.stringify({
+      grant_type: 'refresh_token',
+      client_id: '9dd44b130e742747765bbf2ebf62e405',
+      refresh_token: refreshToken
+    }));
+  }
+
+  function sendMessageWithToken(accessToken) {
+    return axios.post('https://kapi.kakao.com/v2/api/talk/memo/default/send', qs.stringify({
+      template_object: JSON.stringify({
+        object_type: 'text',
+        text: 'SRT 메크로 예약 성공!! 10분안에 결제 하세요.',
+        button_title: '결제 하기',
+        link: {
+          web_url: 'https://etk.srail.co.kr/hpg/hra/02/selectReservationList.do?pageId=TK0102010000',
+          mobile_web_url: 'https://etk.srail.co.kr/hpg/hra/02/selectReservationList.do?pageId=TK0102010000'
+        }
+      })
+    }), {
+      headers: {
+        Authorization: 'Bearer ' + accessToken
+      }
+    });
+  }
+
+  async function sendMessage() {
+    var expiredTime = req.session['KAKAO_EXPIRED'];
+    var currentTime = (new Date()).getTime();
+    var refreshToken = req.session['KAKAO_REFRESH_KEY'];
+
+    try {
+      if (currentTime > expiredTime) {
+        var requestTokenResponse = await requestToken(refreshToken);
+        var responseData = requestTokenResponse.data;
+        req.session['KAKAO_ACCESS_KEY'] = responseData['access_token'];
+        req.session['KAKAO_EXPIRED'] = new Date().getTime() + (responseData['expires_in'] * 1000)
+      }
+      var accessToken = req.session['KAKAO_ACCESS_KEY'];
+      var sendMessageWithTokenResponse = await sendMessageWithToken(accessToken);
+      res.status(200).send('success');
+    } catch(e) {
+      res.status(500).send('send message fail');
+    }
+  }
+
+  if (!req.session['KAKAO_ACCESS_KEY']) {
+    res.status(500).send('not logged in');
+    return;
+  }
+  sendMessage();
+});
+
 app.get('/trainList', function(req, res) {
   var startStation = req.query.startStation;
   var startStationNumber = req.query.startStationNumber;
@@ -53,7 +115,7 @@ app.get('/trainList', function(req, res) {
   var endStationNumber = req.query.endStationNumber;
   var requestDate = req.query.requestDate;
   var requestTime = req.query.requestTime;
-  axios.post('/hpg/hra/01/selectScheduleList.do?pageId=TK0101010000', qs.stringify({
+  axios.post('https://etk.srail.co.kr/hpg/hra/01/selectScheduleList.do?pageId=TK0101010000', qs.stringify({
     dptRsStnCd: startStationNumber,
     arvRsStnCd: endStationNumber,
     stlbTrnClsfCd: '05',
@@ -120,7 +182,7 @@ app.post('/logout', function(req, res) {
 
 app.post('/reserveTrain', function(req, res) {
   function checkUserInfo(startDate, startTime, trainNumber, startStation, endStation, seatType) {
-    return axios.post('/hpg/hra/01/checkUserInfo.do?pageId=TK0101010000', qs.stringify({
+    return axios.post('https://etk.srail.co.kr/hpg/hra/01/checkUserInfo.do?pageId=TK0101010000', qs.stringify({
       rsvTpCd: '01',
       jobId: '1101',
       jrnyTpCd: '11',
@@ -181,7 +243,7 @@ app.post('/reserveTrain', function(req, res) {
   }
 
   function requestReservationInfo() {
-    return axios.get('/hpg/hra/02/requestReservationInfo.do?pageId=TK0101030000', {
+    return axios.get('https://etk.srail.co.kr/hpg/hra/02/requestReservationInfo.do?pageId=TK0101030000', {
       headers: {
         Cookie: 'JSESSIONID_ETK=' + req.session.JSESSIONID_ETK
       }
@@ -189,7 +251,7 @@ app.post('/reserveTrain', function(req, res) {
   }
 
   function confirmReservationInfo() {
-    return axios.get('/hpg/hra/02/confirmReservationInfo.do?pageId=TK0101030000', {
+    return axios.get('https://etk.srail.co.kr/hpg/hra/02/confirmReservationInfo.do?pageId=TK0101030000', {
       headers: {
         Cookie: 'JSESSIONID_ETK=' + req.session.JSESSIONID_ETK
       }
@@ -214,6 +276,7 @@ app.post('/reserveTrain', function(req, res) {
       } else if (confirmReservationInfoResponse.data.includes('10분 내에 결제하지 않으면 예약이 취소됩니다.')) {
         res.status(200).send('ok');
       } else if (confirmReservationInfoResponse.data.includes('입력하신 값을 다시 확인하여 주시기 바랍니다.')) {
+        console.log("???");
         res.status(500).send('unknown error');
       } else {
         console.log(confirmReservationInfoResponse.data);
@@ -239,7 +302,7 @@ app.post('/reserveTrain', function(req, res) {
 });
 
 app.get('/stationList', function(req, res) {
-  axios.post('/hpg/hra/01/selectMapInfo.do?isAll=Y&other=&target=dpt&pageId=TK0101010000')
+  axios.post('https://etk.srail.co.kr/hpg/hra/01/selectMapInfo.do?isAll=Y&other=&target=dpt&pageId=TK0101010000')
   .then(function(response) {
     var $ = cheerio.load(response.data);
     var stationList = [];

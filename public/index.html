@@ -25,6 +25,9 @@
             </li>
           </ul>
           <ul class="navbar-nav">
+            <li class="nav-item" v-if="initialized && isKakaoLogin">
+              <a class="nav-link" href="#">카카오톡 알림중...</a>
+            </li>
             <li class="nav-item" v-if="initialized && isLogin">
               <a class="nav-link" href="#" @click="logout">로그아웃</a>
             </li>
@@ -37,6 +40,8 @@
           <login-form @login-succeed="loginSucceed"></login-form>
         </div>
         <div v-if="initialized && isLogin" class="py-3">
+          <!-- 알람 등록 -->
+          <alert-form class="pb-3" v-if="!isKakaoLogin" @kakao-login-success="kakaoLoginSuccess"></alert-form>
           <!-- 메크로리스트 -->
           <macro-list class="pb-3" :macro-list="macroList" @invalid-token="handleInvalidToken"></macro-list>
           <!-- 열차 조회 -->
@@ -138,6 +143,12 @@
         </div>
       </div>
     </template>
+    <template id="alertForm">
+      <div class="container">
+        <h4>알람 등록</h4>
+        <a id="kakao-login-btn" ref="kakaoLoginBtn"></a>
+      </div>
+    </template>
     <template id="macroList">
       <div class="container">
         <h4>메크로 리스트</h4>
@@ -148,7 +159,7 @@
               <div class="card-body">
                 <h5 class="card-title">
                   <span v-if="macro.status==='running'"><i class="fa fa-spinner fa-spin"></i> 동작중 ...</span>
-                  <span v-if="macro.status==='done'" class="text-success">예약완료</span>
+                  <span v-if="macro.status==='done'" class="text-success">예약성공</span>
                   <span v-if="macro.status==='error'" class="text-danger">중단</span>
                 </h5>
                 <p class="card-text">
@@ -177,16 +188,6 @@
       //<![CDATA[
         // 사용할 앱의 JavaScript 키를 설정해 주세요.
         Kakao.init('2c0a0aef1e5cfcf21e1ad4de65ad58b4');
-        // 카카오 로그인 버튼을 생성합니다.
-        Kakao.Auth.createLoginButton({
-          container: '#kakao-login-btn',
-          success: function(authObj) {
-            alert(JSON.stringify(authObj));
-          },
-          fail: function(err) {
-             alert(JSON.stringify(err));
-          }
-        });
       //]]>
     </script>
     <script type="text/javascript">
@@ -247,6 +248,11 @@
                   if (data === 'ok') {
                     macro.status = 'done';
                     macro.doneTime = new Date().getTime();
+
+                    // 카카오톡 메시지 전송
+                    $.post({
+                      url: '/kakaoMessage'
+                    });
                   } else if (data === 'full') {
                     console.log(macro + ' => 매진');
                   }
@@ -275,6 +281,42 @@
           clearInterval(this.macroIntervalPID);
         }
       });
+      Vue.component('alertForm', {
+        template: '#alertForm',
+        mounted: function() {
+          var component = this;
+          var loginBtnEl = this.$refs.kakaoLoginBtn;
+          Kakao.Auth.createLoginButton({
+            container: loginBtnEl,
+            success: function(authObj) {
+              $.post({
+                url:'/kakaoLogin',
+                data: {
+                  accessToken: authObj.access_token,
+                  refreshToken: authObj.refresh_token,
+                  expiresIn: authObj.expires_in
+                },
+                success: function(data, textStatus, request) {
+                  $.post({
+                    url:'/kakaoMessage',
+                    data: {},
+                    success: function(data, textStatus, request) {
+                      console.log("fuck?")
+                    },
+                    error: function(request, textStatus, errorThrown) {
+                      console.log("fuck?22")
+                    }
+                  });
+                  component.$emit('kakao-login-success');
+                }
+              });
+            },
+            fail: function(err) {
+              alert(JSON.stringify(err));
+            }
+          });
+        }
+      })
       Vue.component('loading', {
         template: '#loading'
       });
@@ -394,7 +436,8 @@
           searchedDate: "",
           searchedStartStation: "",
           searchedEndStation:"",
-          macroList: []
+          macroList: [],
+          isKakaoLogin: false
         },
         methods: {
           loginSucceed: function() {
@@ -405,6 +448,7 @@
               url:'/logout',
               success: function(data, textStatus, request) {
                 this.isLogin = false;
+                this.isKakaoLogin = false;
                 this.searchedTrain = [];
                 this.macroList = [];
               }.bind(this),
@@ -414,6 +458,7 @@
           },
           handleInvalidToken: function() {
             this.isLogin = false;
+            this.isKakaoLogin = false;
             this.searchedTrain = [];
             this.macroList = [];
             this.errorToast('세션이 만료되었습니다.');
@@ -433,6 +478,9 @@
           },
           successToast: function(message) {
             this.$toasted.success(message);
+          },
+          kakaoLoginSuccess: function() {
+            this.isKakaoLogin = true;
           },
           addMacro: function(data) {
             if (this.macroList.length >= 10) {

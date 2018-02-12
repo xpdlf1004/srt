@@ -40,6 +40,14 @@
           <login-form @login-succeed="loginSucceed"></login-form>
         </div>
         <div v-if="initialized && isLogin" class="py-3">
+          <div class="container">
+            <div class="alert alert-warning alert-dismissible fade show" role="alert">
+              <strong>참고..</strong> 카카오톡 알림을 구혔하려 했으나.. 나에게 메시지 보내기는.. 소리가 나지 않음.. 쳇 ㅋ 자고 내일 생각해야지...
+              <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+              </button>
+            </div>
+          </div>
           <!-- 알람 등록 -->
           <alert-form class="pb-3" v-if="!isKakaoLogin" @kakao-login-success="kakaoLoginSuccess"></alert-form>
           <!-- 메크로리스트 -->
@@ -254,7 +262,7 @@
                       url: '/kakaoMessage'
                     });
                   } else if (data === 'full') {
-                    console.log(macro + ' => 매진');
+                    console.log(macro.startTime + ' => 매진');
                   }
                 },
                 error: function(request, textStatus, errorThrown) {

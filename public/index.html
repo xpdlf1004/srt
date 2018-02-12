@@ -33,11 +33,11 @@
         </div>
         <div v-if="initialized && isLogin" class="py-3">
           <!-- 메크로리스트 -->
-          <macro-list class="pb-3"></macro-list>
+          <macro-list class="pb-3" :macro-list="macroList"></macro-list>
           <!-- 열차 조회 -->
           <train-request-form  @train-searched="trainSearched"></train-request-form>
           <!-- 조회 결과 -->
-          <train-list v-if="trainSearchRequested" :train-list="searchedTrain"></train-list>
+          <train-list v-if="trainSearchRequested" :train-list="searchedTrain" @add-macro="addMacro"></train-list>
         </div>
       </div>
     </div>
@@ -125,8 +125,8 @@
                 <td>{{train.startTime}}</td>
                 <td>{{train.endTime}}</td>
                 <td>{{train.duration}}</td>
-                <td><button type="button" class="btn btn-success">등록</button></td>
-                <td><button type="button" class="btn btn-success">등록</button></td>
+                <td><button type="button" class="btn btn-success" @click="addMacro(train, true)">등록</button></td>
+                <td><button type="button" class="btn btn-success" @click="addMacro(train, false)">등록</button></td>
               </tr>
             </tbody>
           </table>
@@ -136,47 +136,25 @@
     <template id="macroList">
       <div class="container">
         <h4>메크로 리스트</h4>
-        <p>등록된 메크로가 없습니다.</p>
+        <p v-if="macroList.length === 0">등록된 메크로가 없습니다.</p>
         <ul class="list-inline">
-          <li class="list-inline-item">
+          <li class="list-inline-item" v-for="(macro, index) in macroList">
             <div class="card mb-2">
               <div class="card-body">
-                <h5 class="card-title"><i class="fa fa-spinner fa-spin"></i> 동작중 ...</h5>
+                <h5 class="card-title">
+                  <span v-if="macro.status==='running'"><i class="fa fa-spinner fa-spin"></i> 동작중 ...</span>
+                  <span v-if="macro.status==='done'" class="text-success">예약완료</span>
+                  <span v-if="macro.status==='error'" class="text-danger">중단</span>
+                </h5>
                 <p class="card-text">
-                  번호 : 318<br/>
-                  출발 : 수서 05:30<br/>
-                  도착 : 부산 07:30<br/>
-                  종류 : 일반실
+                  날짜 : {{macro.date}}<br/>
+                  번호 : {{macro.trainNumber}}<br/>
+                  출발 : {{macro.startTime}}<br/>
+                  도착 : {{macro.endTime}}<br/>
+                  종류 : {{macro.isCommon?'일반실':'특실'}}
                 </p>
-                <a href="#" class="card-link">삭제</a>
-              </div>
-            </div>
-          </li>
-          <li class="list-inline-item">
-            <div class="card mb-2">
-              <div class="card-body">
-                <h5 class="card-title text-success">예약완료</h5>
-                <p class="card-text">
-                  번호 : 332<br/>
-                  출발 : 수서 07:30<br/>
-                  도착 : 부산 10:00<br/>
-                  종류 : 특실
-                </p>
-                <a href="#" class="card-link">결제하기</a>
-              </div>
-            </div>
-          </li>
-          <li class="list-inline-item">
-            <div class="card mb-2">
-              <div class="card-body">
-                <h5 class="card-title text-danger">중단</h5>
-                <p class="card-text">
-                  번호 : 318<br/>
-                  출발 : 수서 05:30<br/>
-                  도착 : 부산 07:30<br/>
-                  종류 : 일반실
-                </p>
-                <a href="#" class="card-link">삭제</a>
+                <a v-if="macro.status==='running' || macro.status==='error'" href="#" class="card-link" @click="removeMacroRequest(index)">삭제</a>
+                <a v-if="macro.status==='done'" href="https://etk.srail.co.kr/hpg/hra/02/selectReservationList.do?pageId=TK0102010000" target="_blank" class="card-link">10분안에 결제하기</a>
               </div>
             </div>
           </li>
@@ -191,7 +169,78 @@
     <script type="text/javascript">
       // This is simple program. so I don't want to split files for develop.
       Vue.component('macroList', {
-        template: '#macroList'
+        template: '#macroList',
+        props: ['macroList'],
+        data: function() {
+          return {
+            macroIntervalPID: ''
+          }
+        },
+        methods: {
+          removeMacroRequest: function(index) {
+            this.macroList.splice(index, 1);
+          },
+          requestMacro: function() {
+            console.log('macro loop is running...');
+            var macroList = this.macroList;
+            $(macroList).each(function() {
+              var macro = this;
+
+              // 예약 완료 상태에서 10분 지났을 경우 running으로 변경
+              if (macro.status === 'done') {
+                var diffMillSec = new Date().getTime() - macro.doneTime;
+                if (diffMillSec > 10 * 60 * 1000) {
+                  macro.status = 'running';
+                }
+              }
+
+              // error 나 done일 경우 취소
+              if (macro.status !== 'running') {
+                return true;
+              }
+
+              var startDate = macro.date;
+              var splitedTime = macro.startTime.split(' ')[1].split(':')
+              var startTime = splitedTime[0] + splitedTime[1] + '00';
+              var trainNumber = '0000000' + macro.trainNumber;
+              trainNumber = trainNumber.substring(trainNumber.length - 5);
+              $.post({
+                url:'/reserveTrain',
+                data: {
+                  startDate: macro.date,
+                  startTime: startTime,
+                  trainNumber: trainNumber,
+                  startStation: macro.startStation,
+                  endStation: macro.endStation,
+                  seatType: macro.isCommon ? '1' : '2',
+                },
+                success: function(data, textStatus, request) {
+                  if (data === 'ok') {
+                    macro.status = 'done';
+                    macro.doneTime = new Date().getTime();
+                  }
+                },
+                error: function(request, textStatus, errorThrown) {
+                  if (request.responseText !== 'full') {
+                    console.log(request.responseText);
+                    macro.status = 'error';
+                  } else {
+                    console.log(macro + ' => 매진');
+                  }
+                }
+              });
+            });
+          }
+        },
+        created: function() {
+          // 5sec for macro
+          console.log('macro loop is started.');
+          this.macroIntervalPID = setInterval(this.requestMacro, 5000);
+        },
+        beforeDestroy: function() {
+          console.log('macro loop is stopped.');
+          clearInterval(this.macroIntervalPID);
+        }
       });
       Vue.component('loading', {
         template: '#loading'
@@ -235,7 +284,12 @@
                 requestTime: this.selectedTime + '00'
               },
               success: function(data, textStatus, request) {
-                this.$emit('train-searched', data);
+                this.$emit('train-searched', {
+                  date: selectedDate,
+                  startStation: selectedStartStation,
+                  endStation: selectedEndStation, 
+                  trainData: data
+                });
               }.bind(this),
               error: function(request, textStatus, errorThrown) {}.bind(this)
             })
@@ -256,7 +310,20 @@
         data: function() {
           return {}
         },
-        props: ['trainList']
+        props: ['trainList'],
+        methods: {
+          addMacro: function(data, isCommon) {
+            var endTime = data.endTime;
+            var startTime = data.startTime;
+            var trainNumber = data.trainNumber;
+            this.$emit('add-macro', {
+              endTime: endTime,
+              startTime: startTime,
+              trainNumber: trainNumber,
+              isCommon: isCommon
+            });
+          }
+        }
       });
       Vue.component('loginForm', {
         template: '#loginForm',
@@ -290,7 +357,11 @@
           isLogin: false,
           initialized: false,
           trainSearchRequested: false,
-          searchedTrain: []
+          searchedTrain: [],
+          searchedDate: "",
+          searchedStartStation: "",
+          searchedEndStation:"",
+          macroList: []
         },
         methods: {
           loginSucceed: function() {
@@ -298,7 +369,7 @@
           },
           logout: function() {
             $.post({
-              url:'/reserveTrain',
+              url:'/logout',
               success: function(data, textStatus, request) {
                 this.isLogin = false
               }.bind(this),
@@ -307,8 +378,23 @@
             })
           },
           trainSearched: function(data) {
-            this.searchedTrain = data;
+            this.searchedTrain = data.trainData;
+            this.searchedDate = data.date;
+            this.searchedStartStation = data.startStation;
+            this.searchedEndStation = data.endStation;
             this.trainSearchRequested = true;
+          },
+          addMacro: function(data) {
+            this.macroList.push({
+              date: this.searchedDate,
+              startStation: this.searchedStartStation,
+              endStation: this.searchedEndStation,
+              startTime: data.startTime,
+              endTime: data.endTime,
+              trainNumber: data.trainNumber,
+              isCommon: data.isCommon,
+              status: 'running'
+            });
           }
         },
         created: function() {

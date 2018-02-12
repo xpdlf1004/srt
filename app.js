@@ -30,14 +30,12 @@ app.post('/login', function(req, res) {
     hmpgPwdCphd: req.body.userPassword,
     srchDvCd: '1'
   })).then(function(response) {
-    console.log(response.headers);
     if (response.data && response.data.includes('location.replace(\'/main.do\');')) {
       // 로그인 성공
       // 쿠키값 세션에 저장
       if (response.headers && response.headers['set-cookie'] && response.headers['set-cookie'].length > 0) {
         sessionKey = response.headers['set-cookie'][0].split(';')[0].split('JSESSIONID_ETK=')[1];
         req.session['JSESSIONID_ETK'] = sessionKey;
-        console.log(sessionKey);
       }
       res.status(200).send('success');
     } else {
@@ -121,7 +119,7 @@ app.post('/logout', function(req, res) {
 });
 
 app.post('/reserveTrain', function(req, res) {
-  function checkUserInfo() {
+  function checkUserInfo(startDate, startTime, trainNumber, startStation, endStation, seatType) {
     return axios.post('/hpg/hra/01/checkUserInfo.do?pageId=TK0101010000', qs.stringify({
       rsvTpCd: '01',
       jobId: '1101',
@@ -129,20 +127,20 @@ app.post('/reserveTrain', function(req, res) {
       jrnyCnt: '1',
       totPrnb: '1',
       stndFlg: 'N',
-      trnOrdrNo1: '1', // 기차 순번
+      //trnOrdrNo1: '1', // 기차 순번 Optional
       jrnySqno1: '001',
-      runDt1: '20180205',
-      trnNo1: '00303', // 기차번호
+      runDt1: startDate,//출발 날짜 ex) 20180212
+      trnNo1: trainNumber, // 기차번호 ex) 00339
       trnGpCd1: '300',
       stlbTrnClsfCd1: '17',
-      dptDt1: '20180205',// 출발 날짜
-      dptTm1: '060000',// 출발 시간
-      dptRsStnCd1: '0551', // 출발역
-      dptStnConsOrdr1: '000001',// 출발역
-      dptStnRunOrdr1: '000001',// 출발역
-      arvRsStnCd1: '0020',// 도착역
-      arvStnConsOrdr1: '000020',// 도착역
-      arvStnRunOrdr1: '000006',// 도착역
+      dptDt1: startDate,// 출발 날짜 ex) 20180212
+      dptTm1: startTime,// 출발 시간 ex) 144600
+      dptRsStnCd1: startStation, // 출발역 ex) 0010
+      //dptStnConsOrdr1: '000001',// 출발역 Optional
+      //dptStnRunOrdr1: '000001',// 출발역 Optional
+      arvRsStnCd1: endStation,// 도착역 ex) 0020
+      //arvStnConsOrdr1: '000020',// 도착역 Optional
+      //arvStnRunOrdr1: '000006',// 도착역 Optional
       scarYn1: 'N',
       scarGridcnt1: '',
       scarNo1: '',
@@ -155,7 +153,7 @@ app.post('/reserveTrain', function(req, res) {
       seatNo1_7: '',
       seatNo1_8: '',
       seatNo1_9: '',
-      psrmClCd1: '1',
+      psrmClCd1: seatType, // 일반 1, 특실 2
       smkSeatAttCd1: '000',
       dirSeatAttCd1: '000',
       locSeatAttCd1: '000',
@@ -181,6 +179,7 @@ app.post('/reserveTrain', function(req, res) {
       }
     });
   }
+
   function requestReservationInfo() {
     return axios.get('/hpg/hra/02/requestReservationInfo.do?pageId=TK0101030000', {
       headers: {
@@ -188,22 +187,51 @@ app.post('/reserveTrain', function(req, res) {
       }
     });
   }
-  async function reserveTrain() {
+
+  function confirmReservationInfo() {
+    return axios.get('/hpg/hra/02/confirmReservationInfo.do?pageId=TK0101030000', {
+      headers: {
+        Cookie: 'JSESSIONID_ETK=' + req.session.JSESSIONID_ETK
+      }
+    });
+  }
+
+  async function reserveTrain(startDate, startTime, trainNumber, startStation, endStation, seatType) {
     try {
-      const checkUserInfoResponse = await checkUserInfo();
-      console.log(checkUserInfoResponse.data);
-
-      // location.replace('/cmc/01/selectLoginForm.do?pageId=TK0701000000&rsvTpCd=07btYNcdmWD9MWHh3EKBQA%3D%3D');
-      // 로그인 다시 시키기
-
-      // else replace requestReservationInfo.do 이면
+      const checkUserInfoResponse = await checkUserInfo(startDate, startTime, trainNumber, startStation, endStation, seatType);
+      if (checkUserInfoResponse.data.includes('selectLoginForm.do')) {
+        res.status(500).send('invalid token');
+        return
+      }
       const requestReservationInfoResponse = await requestReservationInfo();
-      console.log(requestReservationInfoResponse.data);
+      const confirmReservationInfoResponse = await confirmReservationInfo();
+      if (confirmReservationInfoResponse.data.includes('잔여석없음')) {
+        res.status(500).send('full');
+      } else if (confirmReservationInfoResponse.data.includes('열차구간정보오류')) {
+        res.status(500).send('invalid param');
+      } else if (confirmReservationInfoResponse.data.includes('20분 이내 열차는 예약하실 수 없습니다.')) {
+        res.status(500).send('invalid time');
+      } else if (confirmReservationInfoResponse.data.includes('10분 내에 결제하지 않으면 예약이 취소됩니다.')) {
+        res.status(200).send('ok');
+      } else {
+        res.status(500).send('server error');
+      }
     } catch(e) {
       res.status(500).send('server error');
     }
   }
-  reserveTrain();
+
+  if (!req.session.JSESSIONID_ETK) {
+    res.status(500).send('invalid token');
+    return;
+  }
+  var startDate = req.body.startDate;
+  var startTime = req.body.startTime;
+  var trainNumber = req.body.trainNumber;
+  var startStation = req.body.startStation;
+  var endStation = req.body.endStation;
+  var seatType = req.body.seatType;
+  reserveTrain(startDate, startTime, trainNumber, startStation, endStation, seatType);
 });
 
 app.get('/stationList', function(req, res) {

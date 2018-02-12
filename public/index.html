@@ -1,8 +1,13 @@
 <html>
   <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>SRT 메크로</title>
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
     <link rel="stylesheet" href="/bower_components/components-font-awesome/css/font-awesome.min.css">
     <link rel="stylesheet" href="/common.css">
+    <link rel="stylesheet" href="/vue-toasted.min.css">
   </head>
   <body>
     <div id="app">
@@ -33,7 +38,7 @@
         </div>
         <div v-if="initialized && isLogin" class="py-3">
           <!-- 메크로리스트 -->
-          <macro-list class="pb-3" :macro-list="macroList"></macro-list>
+          <macro-list class="pb-3" :macro-list="macroList" @invalid-token="handleInvalidToken"></macro-list>
           <!-- 열차 조회 -->
           <train-request-form  @train-searched="trainSearched"></train-request-form>
           <!-- 조회 결과 -->
@@ -166,8 +171,31 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/vue"></script>
+    <script src="/vue-toasted.min.js"></script>
+    <script src="//developers.kakao.com/sdk/js/kakao.min.js"></script>
+    <script type='text/javascript'>
+      //<![CDATA[
+        // 사용할 앱의 JavaScript 키를 설정해 주세요.
+        Kakao.init('2c0a0aef1e5cfcf21e1ad4de65ad58b4');
+        // 카카오 로그인 버튼을 생성합니다.
+        Kakao.Auth.createLoginButton({
+          container: '#kakao-login-btn',
+          success: function(authObj) {
+            alert(JSON.stringify(authObj));
+          },
+          fail: function(err) {
+             alert(JSON.stringify(err));
+          }
+        });
+      //]]>
+    </script>
     <script type="text/javascript">
       // This is simple program. so I don't want to split files for develop.
+      Vue.use(Toasted, {
+        position: 'bottom-right',
+        duration: 1500,
+        closeOnSwipe: false
+      });
       Vue.component('macroList', {
         template: '#macroList',
         props: ['macroList'],
@@ -182,6 +210,7 @@
           },
           requestMacro: function() {
             console.log('macro loop is running...');
+            var component = this;
             var macroList = this.macroList;
             $(macroList).each(function() {
               var macro = this;
@@ -218,14 +247,18 @@
                   if (data === 'ok') {
                     macro.status = 'done';
                     macro.doneTime = new Date().getTime();
+                  } else if (data === 'full') {
+                    console.log(macro + ' => 매진');
                   }
                 },
                 error: function(request, textStatus, errorThrown) {
-                  if (request.responseText !== 'full') {
+                  if (request.responseText === 'invalid token') {
+                    component.$emit('invalid-token');
+                  } else if (request.responseText === 'unknown error') {
+                    console.log('알수없는 오류..');
+                  } else {
                     console.log(request.responseText);
                     macro.status = 'error';
-                  } else {
-                    console.log(macro + ' => 매진');
                   }
                 }
               });
@@ -371,11 +404,19 @@
             $.post({
               url:'/logout',
               success: function(data, textStatus, request) {
-                this.isLogin = false
+                this.isLogin = false;
+                this.searchedTrain = [];
+                this.macroList = [];
               }.bind(this),
               error: function(request, textStatus, errorThrown) {
               }.bind(this)
             })
+          },
+          handleInvalidToken: function() {
+            this.isLogin = false;
+            this.searchedTrain = [];
+            this.macroList = [];
+            this.errorToast('세션이 만료되었습니다.');
           },
           trainSearched: function(data) {
             this.searchedTrain = data.trainData;
@@ -384,7 +425,20 @@
             this.searchedEndStation = data.endStation;
             this.trainSearchRequested = true;
           },
+          showToast: function(message) {
+            this.$toasted.show(message);
+          },
+          errorToast: function(message) {
+            this.$toasted.error(message);
+          },
+          successToast: function(message) {
+            this.$toasted.success(message);
+          },
           addMacro: function(data) {
+            if (this.macroList.length >= 10) {
+              this.errorToast('최대 10개까지 등록 가능합니다.');
+              return;
+            }
             this.macroList.push({
               date: this.searchedDate,
               startStation: this.searchedStartStation,
@@ -395,10 +449,10 @@
               isCommon: data.isCommon,
               status: 'running'
             });
+            this.successToast('메크로 리스트에 등록되었습니다.');
           }
         },
         created: function() {
-          // 로그인 체크
           $.post({
             url:'/checkLogin',
             success: function(data, textStatus, request) {

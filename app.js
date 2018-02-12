@@ -206,18 +206,22 @@ app.post('/reserveTrain', function(req, res) {
       const requestReservationInfoResponse = await requestReservationInfo();
       const confirmReservationInfoResponse = await confirmReservationInfo();
       if (confirmReservationInfoResponse.data.includes('잔여석없음')) {
-        res.status(500).send('full');
+        res.status(200).send('full');
       } else if (confirmReservationInfoResponse.data.includes('열차구간정보오류')) {
         res.status(500).send('invalid param');
       } else if (confirmReservationInfoResponse.data.includes('20분 이내 열차는 예약하실 수 없습니다.')) {
         res.status(500).send('invalid time');
       } else if (confirmReservationInfoResponse.data.includes('10분 내에 결제하지 않으면 예약이 취소됩니다.')) {
         res.status(200).send('ok');
+      } else if (confirmReservationInfoResponse.data.includes('입력하신 값을 다시 확인하여 주시기 바랍니다.')) {
+        res.status(500).send('unknown error');
       } else {
+        console.log(confirmReservationInfoResponse.data);
         res.status(500).send('server error');
       }
     } catch(e) {
-      res.status(500).send('server error');
+      console.log('external server error');
+      res.status(500).send('external server error');
     }
   }
 

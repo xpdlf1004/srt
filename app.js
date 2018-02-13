@@ -276,14 +276,13 @@ app.post('/reserveTrain', function(req, res) {
       } else if (confirmReservationInfoResponse.data.includes('10분 내에 결제하지 않으면 예약이 취소됩니다.')) {
         res.status(200).send('ok');
       } else if (confirmReservationInfoResponse.data.includes('입력하신 값을 다시 확인하여 주시기 바랍니다.')) {
-        console.log("???");
         res.status(500).send('unknown error');
       } else {
         console.log(confirmReservationInfoResponse.data);
         res.status(500).send('server error');
       }
     } catch(e) {
-      console.log('external server error');
+      console.log(e);
       res.status(500).send('external server error');
     }
   }

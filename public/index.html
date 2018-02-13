@@ -40,18 +40,10 @@
           <login-form @login-succeed="loginSucceed"></login-form>
         </div>
         <div v-if="initialized && isLogin" class="py-3">
-          <div class="container">
-            <div class="alert alert-warning alert-dismissible fade show" role="alert">
-              <strong>참고..</strong> 카카오톡 알림을 구혔하려 했으나.. 나에게 메시지 보내기는.. 소리가 나지 않음.. 쳇 ㅋ 자고 내일 생각해야지...
-              <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                <span aria-hidden="true">&times;</span>
-              </button>
-            </div>
-          </div>
           <!-- 알람 등록 -->
           <alert-form class="pb-3" v-if="!isKakaoLogin" @kakao-login-success="kakaoLoginSuccess"></alert-form>
           <!-- 메크로리스트 -->
-          <macro-list class="pb-3" :macro-list="macroList" @invalid-token="handleInvalidToken"></macro-list>
+          <macro-list class="pb-3" :macro-list="macroList" @macro-success="handleMacroSuccess" @invalid-token="handleInvalidToken"></macro-list>
           <!-- 열차 조회 -->
           <train-request-form  @train-searched="trainSearched"></train-request-form>
           <!-- 조회 결과 -->
@@ -154,7 +146,21 @@
     <template id="alertForm">
       <div class="container">
         <h4>알람 등록</h4>
-        <a id="kakao-login-btn" ref="kakaoLoginBtn"></a>
+        <div>
+          <a id="kakao-login-btn" ref="kakaoLoginBtn"></a>
+          <p class="text-muted">카카오톡 알림의 경우 나에게 메시지 보내기로... 현재 별로.. 도움은 안됩니다.. 죄송
+          </p>
+        </div>
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" value="" id="defaultCheck1" checked v-model="isSoundAlertChecked">
+          <label class="form-check-label" for="defaultCheck1">
+            예약 완료시 소리로 알림
+          </label>
+          <audio controls class="d-none" ref="alertAudio">
+            <source src="alarm.ogg" type="audio/ogg">
+            <source src="alarm.mp3" type="audio/mpeg">
+          </audio>
+        </div>
       </div>
     </template>
     <template id="macroList">
@@ -261,6 +267,8 @@
                     $.post({
                       url: '/kakaoMessage'
                     });
+                    // 부모쪽으로 성공 이벤트 전송
+                    component.$emit('macro-success');
                   } else if (data === 'full') {
                     console.log(macro.startTime + ' => 매진');
                   }
@@ -291,6 +299,14 @@
       });
       Vue.component('alertForm', {
         template: '#alertForm',
+        data: function() {
+          return {
+            isSoundAlertChecked: true
+          };
+        },
+        created: function() {
+          this.$parent.$on('alert-success', this.alertSuccess);
+        },
         mounted: function() {
           var component = this;
           var loginBtnEl = this.$refs.kakaoLoginBtn;
@@ -305,16 +321,6 @@
                   expiresIn: authObj.expires_in
                 },
                 success: function(data, textStatus, request) {
-                  $.post({
-                    url:'/kakaoMessage',
-                    data: {},
-                    success: function(data, textStatus, request) {
-                      console.log("fuck?")
-                    },
-                    error: function(request, textStatus, errorThrown) {
-                      console.log("fuck?22")
-                    }
-                  });
                   component.$emit('kakao-login-success');
                 }
               });
@@ -323,6 +329,13 @@
               alert(JSON.stringify(err));
             }
           });
+        },
+        methods: {
+          alertSuccess: function() {
+            if (this.isSoundAlertChecked) {
+              this.$refs.alertAudio.play();
+            }
+          }
         }
       })
       Vue.component('loading', {
@@ -489,6 +502,9 @@
           },
           kakaoLoginSuccess: function() {
             this.isKakaoLogin = true;
+          },
+          handleMacroSuccess: function() {
+            this.$emit('alert-success');
           },
           addMacro: function(data) {
             if (this.macroList.length >= 10) {

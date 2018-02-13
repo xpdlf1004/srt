@@ -319,7 +319,7 @@
         created: function() {
           // 5sec for macro
           console.log('macro loop is started.');
-          this.macroIntervalPID = setInterval(this.requestMacro, 5000);
+          this.macroIntervalPID = setInterval(this.requestMacro, 10000);
         },
         beforeDestroy: function() {
           console.log('macro loop is stopped.');

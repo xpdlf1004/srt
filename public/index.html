@@ -3,11 +3,14 @@
     <!-- Required meta tags -->
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta property="og:title" content="SRT 메크로" />
+    <meta property="og:description" content="SRT 자동 티케팅 메크로 입니다." />
     <title>SRT 메크로</title>
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
     <link rel="stylesheet" href="/bower_components/components-font-awesome/css/font-awesome.min.css">
     <link rel="stylesheet" href="/common.css">
     <link rel="stylesheet" href="/vue-toasted.min.css">
+    <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico" />
   </head>
   <body>
     <div id="app">
@@ -146,11 +149,13 @@
     <template id="alertForm">
       <div class="container">
         <h4>알람 등록</h4>
-        <div>
-          <a id="kakao-login-btn" ref="kakaoLoginBtn"></a>
-          <p class="text-muted">카카오톡 알림의 경우 나에게 메시지 보내기로... 현재 별로.. 도움은 안됩니다.. 죄송
-          </p>
-        </div>
+        <!--
+          <div>
+            <a id="kakao-login-btn" ref="kakaoLoginBtn"></a>
+            <p class="text-muted">카카오톡 알림의 경우 나에게 메시지 보내기로... 현재 별로.. 도움은 안됩니다.. 죄송
+            </p>
+          </div>
+        -->
         <div class="form-check">
           <input class="form-check-input" type="checkbox" value="" id="defaultCheck1" checked v-model="isSoundAlertChecked">
           <label class="form-check-label" for="defaultCheck1">
@@ -264,9 +269,10 @@
                     macro.doneTime = new Date().getTime();
 
                     // 카카오톡 메시지 전송
+                    /*
                     $.post({
                       url: '/kakaoMessage'
-                    });
+                    });*/
                     // 부모쪽으로 성공 이벤트 전송
                     component.$emit('macro-success');
                   } else if (data === 'full') {
@@ -309,6 +315,7 @@
         },
         mounted: function() {
           var component = this;
+          /*
           var loginBtnEl = this.$refs.kakaoLoginBtn;
           Kakao.Auth.createLoginButton({
             container: loginBtnEl,
@@ -328,7 +335,7 @@
             fail: function(err) {
               alert(JSON.stringify(err));
             }
-          });
+          });*/
         },
         methods: {
           alertSuccess: function() {

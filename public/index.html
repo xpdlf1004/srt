@@ -189,6 +189,7 @@
                   종류 : {{macro.isCommon?'일반실':'특실'}}
                 </p>
                 <a v-if="macro.status==='running' || macro.status==='error'" href="#" class="card-link" @click="removeMacroRequest(index)">삭제</a>
+                <a v-if="macro.status==='error'" href="#" class="card-link pull-right" @click="restartMacroRequest(index)">재시작</a>
                 <a v-if="macro.status==='done'" href="https://etk.srail.co.kr/hpg/hra/02/selectReservationList.do?pageId=TK0102010000" target="_blank" class="card-link">10분안에 결제하기</a>
               </div>
             </div>
@@ -227,6 +228,9 @@
         methods: {
           removeMacroRequest: function(index) {
             this.macroList.splice(index, 1);
+          },
+          restartMacroRequest: function(index) {
+            this.macroList[index].status = 'running';
           },
           requestMacro: function() {
             console.log('macro loop is running...');
@@ -284,9 +288,28 @@
                     component.$emit('invalid-token');
                   } else if (request.responseText === 'unknown error') {
                     console.log('알수없는 오류..');
-                  } else {
-                    console.log(request.responseText);
+                  } else if (request.responseText === 'external server error') {
+                    // 외부 서버 에러일 경우에 5번까지 봐줌
+                    if (macro.errorCount) {
+                      if (macro.errorCount > 5) {
+                        macro.status = 'error';
+                        macro.errorReason = 'SRT 홈페이지 에러';
+                        macro.errorCount = null;
+                      } else {
+                        macro.errorCount = macro.errorCount + 1;
+                      }
+                    } else {
+                      macro.errorCount = 1;
+                    }
+                  } else if (request.responseText === 'invalid param') {
                     macro.status = 'error';
+                    macro.errorReason = '잘못된 정보로 요청하였습니다.';
+                  } else if (request.responseText === 'invalid time') {
+                    macro.status = 'error';
+                    macro.errorReason = '20분 이내의 열차는 예약할 수 없습니다.';
+                  } else {
+                    macro.status = 'error';
+                    macro.errorReason = request.responseText;
                   }
                 }
               });

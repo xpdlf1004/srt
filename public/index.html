@@ -1,583 +1,604 @@
 <html>
-  <head>
-    <!-- Required meta tags -->
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <meta property="og:title" content="SRT 메크로" />
-    <meta property="og:description" content="SRT 자동 티케팅 메크로 입니다." />
-    <title>SRT 메크로</title>
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
-    <link rel="stylesheet" href="/bower_components/components-font-awesome/css/font-awesome.min.css">
-    <link rel="stylesheet" href="/common.css">
-    <link rel="stylesheet" href="/vue-toasted.min.css">
-    <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico" />
-  </head>
-  <body>
-    <div id="app">
-      <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-        <a class="navbar-brand" href="#">SRT 메크로</a>
-        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
-          <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse" id="navbarSupportedContent">
-          <ul class="navbar-nav mr-auto">
-            <li class="nav-item active">
-              <!--
+
+<head>
+  <!-- Required meta tags -->
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <meta property="og:title" content="SRT 메크로" />
+  <meta property="og:description" content="SRT 자동 티케팅 메크로 입니다." />
+  <title>SRT 메크로</title>
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm"
+    crossorigin="anonymous">
+  <link rel="stylesheet" href="/bower_components/components-font-awesome/css/font-awesome.min.css">
+  <link rel="stylesheet" href="/common.css">
+  <link rel="stylesheet" href="/vue-toasted.min.css">
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico" />
+</head>
+
+<body>
+  <div id="app">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+      <a class="navbar-brand" href="#">SRT 메크로</a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent"
+        aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarSupportedContent">
+        <ul class="navbar-nav mr-auto">
+          <li class="nav-item active">
+            <!--
                 <a class="nav-link" href="#">Home</a>
               -->
-            </li>
-          </ul>
-          <ul class="navbar-nav">
-            <li class="nav-item" v-if="initialized && isKakaoLogin">
-              <a class="nav-link" href="#">카카오톡 알림중...</a>
-            </li>
-            <li class="nav-item" v-if="initialized && isLogin">
-              <a class="nav-link" href="#" @click="logout">로그아웃</a>
-            </li>
-          </ul>
-        </div>
-      </nav>
-      <div class="w-100">
-        <loading v-if="!initialized"></loading>
-        <div v-if="initialized && !isLogin" class="py-3">
-          <login-form @login-succeed="loginSucceed"></login-form>
-        </div>
-        <div v-if="initialized && isLogin" class="py-3">
-          <!-- 알람 등록 -->
-          <alert-form class="pb-3" v-if="!isKakaoLogin" @kakao-login-success="kakaoLoginSuccess"></alert-form>
-          <!-- 메크로리스트 -->
-          <macro-list class="pb-3" :macro-list="macroList" @macro-success="handleMacroSuccess" @invalid-token="handleInvalidToken"></macro-list>
-          <!-- 열차 조회 -->
-          <train-request-form  @train-searched="trainSearched"></train-request-form>
-          <!-- 조회 결과 -->
-          <train-list v-if="trainSearchRequested" :train-list="searchedTrain" @add-macro="addMacro"></train-list>
-        </div>
-      </div>
-    </div>
-    <!-- 템플릿 -->
-    <template id="loading">
-      <div>
-        <div class="alert alert-warning mt-3 mb-3" role="alert">
-          <i class="fa fa-spinner fa-spin"></i>
-          <span>로딩 ...</span>
-        </div>
-      </div>
-    </template>
-    <template id="loginForm">
-      <div class="container">
-        <h4>로그인</h4>
-        <form>
-          <div class="form-group">
-            <label for="userNumber">회원번호</label>
-            <input type="text" class="form-control" v-model="userNumber" id="userNumber" placeholder="회원번호">
-          </div>
-          <div class="form-group">
-            <label for="userPassword">비밀번호</label>
-            <input type="password" class="form-control" v-model="userPassword" id="userEmail" placeholder="비밀번호">
-          </div>
-          <div class="alert alert-warning alert-dismissible fade show" role="alert">
-            <strong>안심하세요!</strong> 서버에 어떠한 개인 정보도 남기지 않습니다.
-            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-              <span aria-hidden="true">&times;</span>
-            </button>
-          </div>
-          <button type="submit" class="btn btn-primary" @click.prevent="login">로그인</button>
-        </form>
-      </div>
-    </template>
-    <template id="trainRequestForm">
-      <div class="container">
-        <h4>열차 조회</h4>
-        <form>
-          <div class="form-group">
-            <label for="stationSelectStart">출발지</label>
-            <select class="form-control" id="stationSelectStart" v-model="selectedStartStation">
-              <option disabled value="">선택</option>
-              <option v-for="station in stationList" :key="station.id" v-bind:value="station.id">{{station.name}}</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label for="stationSelectEnd">도착지</label>
-            <select class="form-control" id="stationSelectEnd" v-model="selectedEndStation">
-              <option disabled value="">선택</option>
-              <option v-for="station in stationList" :key="station.id" v-bind:value="station.id">{{station.name}}</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label for="dateSelect">날짜</label>
-            <input type="date" class="form-control" id="dateSelect" v-model="selectedDate">
-          </div>
-          <div class="form-group">
-            <label for="timeSelect">시간</label>
-            <select class="form-control" id="timeSelect" v-model="selectedTime">
-              <option v-for="timeDiff in timeDiffList">{{timeDiff}}</option>
-            </select>
-          </div>
-          <button type="submit" class="btn btn-primary" :disabled="!checkForm" @click.prevent="getTrainList">조회</button>
-        </form>
-      </div>
-    </template>
-    <template id="trainList">
-      <div class="container">
-        <h4>열차 선택</h4>
-        <div>
-          <table class="table">
-            <thead>
-              <tr>
-                <th scope="col">열차 번호</th>
-                <th scope="col">출발</th>
-                <th scope="col">도착</th>
-                <th scope="col">소요시간</th>
-                <th scope="col">일반실</th>
-                <th scope="col">특실</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="train in trainList">
-                <th scope="row">{{train.trainNumber}}</th>
-                <td>{{train.startTime}}</td>
-                <td>{{train.endTime}}</td>
-                <td>{{train.duration}}</td>
-                <td><button type="button" class="btn btn-success" @click="addMacro(train, true)">등록</button></td>
-                <td><button type="button" class="btn btn-success" @click="addMacro(train, false)">등록</button></td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </template>
-    <template id="alertForm">
-      <div class="container">
-        <h4>알람 등록</h4>
-        <!--
-          <div>
-            <a id="kakao-login-btn" ref="kakaoLoginBtn"></a>
-            <p class="text-muted">카카오톡 알림의 경우 나에게 메시지 보내기로... 현재 별로.. 도움은 안됩니다.. 죄송
-            </p>
-          </div>
-        -->
-        <div class="form-check">
-          <input class="form-check-input" type="checkbox" value="" id="defaultCheck1" checked v-model="isSoundAlertChecked">
-          <label class="form-check-label" for="defaultCheck1">
-            예약 완료시 소리로 알림
-          </label>
-          <audio controls class="d-none" ref="alertAudio">
-            <source src="alarm.ogg" type="audio/ogg">
-            <source src="alarm.mp3" type="audio/mpeg">
-          </audio>
-        </div>
-      </div>
-    </template>
-    <template id="macroList">
-      <div class="container">
-        <h4>메크로 리스트</h4>
-        <p v-if="macroList.length === 0">등록된 메크로가 없습니다.</p>
-        <ul class="list-inline">
-          <li class="list-inline-item" v-for="(macro, index) in macroList">
-            <div class="card mb-2">
-              <div class="card-body">
-                <h5 class="card-title">
-                  <span v-if="macro.status==='running'"><i class="fa fa-spinner fa-spin"></i> 동작중 ...</span>
-                  <span v-if="macro.status==='done'" class="text-success">예약성공</span>
-                  <span v-if="macro.status==='error'" class="text-danger">중단</span>
-                </h5>
-                <p class="card-text">
-                  날짜 : {{macro.date}}<br/>
-                  번호 : {{macro.trainNumber}}<br/>
-                  출발 : {{macro.startTime}}<br/>
-                  도착 : {{macro.endTime}}<br/>
-                  종류 : {{macro.isCommon?'일반실':'특실'}}
-                </p>
-                <a v-if="macro.status==='running' || macro.status==='error'" href="#" class="card-link" @click="removeMacroRequest(index)">삭제</a>
-                <a v-if="macro.status==='error'" href="#" class="card-link pull-right" @click="restartMacroRequest(index)">재시작</a>
-                <a v-if="macro.status==='done'" href="https://etk.srail.co.kr/hpg/hra/02/selectReservationList.do?pageId=TK0102010000" target="_blank" class="card-link">10분안에 결제하기</a>
-              </div>
-            </div>
+          </li>
+        </ul>
+        <ul class="navbar-nav">
+          <li class="nav-item" v-if="initialized && isKakaoLogin">
+            <a class="nav-link" href="#">카카오톡 알림중...</a>
+          </li>
+          <li class="nav-item" v-if="initialized && isLogin">
+            <a class="nav-link" href="#" @click="logout">로그아웃</a>
           </li>
         </ul>
       </div>
-    </template>
-    <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
-    <script src="http://underscorejs.org/underscore-min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
-    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/vue"></script>
-    <!-- Global site tag (gtag.js) - Google Analytics -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-114060305-1"></script>
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
+    </nav>
+    <div class="w-100">
+      <loading v-if="!initialized"></loading>
+      <div v-if="initialized && !isLogin" class="py-3">
+        <login-form @login-succeed="loginSucceed"></login-form>
+      </div>
+      <div v-if="initialized && isLogin" class="py-3">
+        <!-- 알람 등록 -->
+        <alert-form class="pb-3" :is-kakao-login="isKakaoLogin" @kakao-login-success="kakaoLoginSuccess"></alert-form>
+        <!-- 메크로리스트 -->
+        <macro-list class="pb-3" :macro-list="macroList" @macro-success="handleMacroSuccess" @invalid-token="handleInvalidToken"></macro-list>
+        <!-- 열차 조회 -->
+        <train-request-form @train-searched="trainSearched"></train-request-form>
+        <!-- 조회 결과 -->
+        <train-list v-if="trainSearchRequested" :train-list="searchedTrain" @add-macro="addMacro"></train-list>
+      </div>
+    </div>
+  </div>
+  <!-- 템플릿 -->
+  <template id="loading">
+    <div>
+      <div class="alert alert-warning mt-3 mb-3" role="alert">
+        <i class="fa fa-spinner fa-spin"></i>
+        <span>로딩 ...</span>
+      </div>
+    </div>
+  </template>
+  <template id="loginForm">
+    <div class="container">
+      <h4>로그인</h4>
+      <form>
+        <div class="form-group">
+          <label for="userNumber">회원번호</label>
+          <input type="text" class="form-control" v-model="userNumber" id="userNumber" placeholder="회원번호">
+        </div>
+        <div class="form-group">
+          <label for="userPassword">비밀번호</label>
+          <input type="password" class="form-control" v-model="userPassword" id="userEmail" placeholder="비밀번호">
+        </div>
+        <div class="alert alert-warning alert-dismissible fade show" role="alert">
+          <strong>안심하세요!</strong> 서버에 어떠한 개인 정보도 남기지 않습니다.
+          <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <button type="submit" class="btn btn-primary" @click.prevent="login">로그인</button>
+      </form>
+    </div>
+  </template>
+  <template id="trainRequestForm">
+    <div class="container">
+      <h4>열차 조회</h4>
+      <form>
+        <div class="form-group">
+          <label for="stationSelectStart">출발지</label>
+          <select class="form-control" id="stationSelectStart" v-model="selectedStartStation">
+            <option disabled value="">선택</option>
+            <option v-for="station in stationList" :key="station.id" v-bind:value="station.id">{{station.name}}</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="stationSelectEnd">도착지</label>
+          <select class="form-control" id="stationSelectEnd" v-model="selectedEndStation">
+            <option disabled value="">선택</option>
+            <option v-for="station in stationList" :key="station.id" v-bind:value="station.id">{{station.name}}</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="dateSelect">날짜</label>
+          <input type="date" class="form-control" id="dateSelect" v-model="selectedDate">
+        </div>
+        <div class="form-group">
+          <label for="timeSelect">시간</label>
+          <select class="form-control" id="timeSelect" v-model="selectedTime">
+            <option v-for="timeDiff in timeDiffList">{{timeDiff}}</option>
+          </select>
+        </div>
+        <button type="submit" class="btn btn-primary" :disabled="!checkForm" @click.prevent="getTrainList">조회</button>
+      </form>
+    </div>
+  </template>
+  <template id="trainList">
+    <div class="container">
+      <h4>열차 선택</h4>
+      <div>
+        <table class="table">
+          <thead>
+            <tr>
+              <th scope="col">열차 번호</th>
+              <th scope="col">출발</th>
+              <th scope="col">도착</th>
+              <th scope="col">소요시간</th>
+              <th scope="col">일반실</th>
+              <th scope="col">특실</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="train in trainList">
+              <th scope="row">{{train.trainNumber}}</th>
+              <td>{{train.startTime}}</td>
+              <td>{{train.endTime}}</td>
+              <td>{{train.duration}}</td>
+              <td><button type="button" class="btn btn-success" @click="addMacro(train, true)">등록</button></td>
+              <td><button type="button" class="btn btn-success" @click="addMacro(train, false)">등록</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </template>
+  <template id="alertForm">
+    <div class="container">
+      <h4>알람 등록</h4>
+      <div v-if="!isKakaoLogin">
+        <a id="kakao-login-btn" ref="kakaoLoginBtn"></a>
+        <p class="text-muted">카카오톡 나에게 메시지 보내기
+        </p>
+      </div>
+      <div class="form-check">
+        <input class="form-check-input" type="checkbox" value="" id="defaultCheck1" checked v-model="isSoundAlertChecked">
+        <label class="form-check-label" for="defaultCheck1">
+          예약 완료시 소리로 알림
+        </label>
+        <audio controls class="d-none" ref="alertAudio">
+          <source src="alarm.ogg" type="audio/ogg">
+          <source src="alarm.mp3" type="audio/mpeg">
+        </audio>
+      </div>
+    </div>
+  </template>
+  <template id="macroList">
+    <div class="container">
+      <h4>메크로 리스트</h4>
+      <p v-if="macroList.length === 0">등록된 메크로가 없습니다.</p>
+      <ul class="list-inline">
+        <li class="list-inline-item" v-for="(macro, index) in macroList">
+          <div class="card mb-2">
+            <div class="card-body">
+              <h5 class="card-title">
+                <span v-if="macro.status==='running'"><i class="fa fa-spinner fa-spin"></i> 동작중 ...</span>
+                <span v-if="macro.status==='done'" class="text-success">예약성공</span>
+                <span v-if="macro.status==='error'" class="text-danger">중단</span>
+              </h5>
+              <p class="card-text">
+                날짜 : {{macro.date}}<br />
+                번호 : {{macro.trainNumber}}<br />
+                출발 : {{macro.startTime}}<br />
+                도착 : {{macro.endTime}}<br />
+                종류 : {{macro.isCommon?'일반실':'특실'}}
+              </p>
+              <a v-if="macro.status==='running' || macro.status==='error'" href="#" class="card-link" @click="removeMacroRequest(index)">삭제</a>
+              <a v-if="macro.status==='error'" href="#" class="card-link pull-right" @click="restartMacroRequest(index)">재시작</a>
+              <a v-if="macro.status==='done'" href="https://etk.srail.co.kr/hpg/hra/02/selectReservationList.do?pageId=TK0102010000"
+                target="_blank" class="card-link">10분안에 결제하기</a>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+  </template>
+  <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8="
+    crossorigin="anonymous"></script>
+  <script src="http://underscorejs.org/underscore-min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"
+    crossorigin="anonymous"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"
+    crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vue"></script>
+  <!-- Global site tag (gtag.js) - Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=UA-114060305-1"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag() { dataLayer.push(arguments); }
+    gtag('js', new Date());
 
-      gtag('config', 'UA-114060305-1');
-    </script>
-    <script src="/vue-toasted.min.js"></script>
-    <script src="//developers.kakao.com/sdk/js/kakao.min.js"></script>
-    <script type='text/javascript'>
-      //<![CDATA[
-        // 사용할 앱의 JavaScript 키를 설정해 주세요.
-        Kakao.init('2c0a0aef1e5cfcf21e1ad4de65ad58b4');
+    gtag('config', 'UA-114060305-1');
+  </script>
+  <script src="/vue-toasted.min.js"></script>
+  <script src="//developers.kakao.com/sdk/js/kakao.min.js"></script>
+  <script type='text/javascript'>
+    //<![CDATA[
+    // 사용할 앱의 JavaScript 키를 설정해 주세요.
+    Kakao.init('2c0a0aef1e5cfcf21e1ad4de65ad58b4');
       //]]>
-    </script>
-    <script type="text/javascript">
-      // This is simple program. so I don't want to split files for develop.
-      Vue.use(Toasted, {
-        position: 'bottom-right',
-        duration: 1500,
-        closeOnSwipe: false
-      });
-      Vue.component('macroList', {
-        template: '#macroList',
-        props: ['macroList'],
-        data: function() {
-          return {
-            macroIntervalPID: ''
+  </script>
+  <script type="text/javascript">
+    function notifyMe() {
+      if (!("Notification" in window)) {
+        console.log("This browser does not support desktop notification");
+      }
+      else if (Notification.permission === "granted") {
+        var notification = new Notification("I got a ticket!");
+      }
+      else if (Notification.permission !== 'denied' || Notification.permission === "default") {
+        Notification.requestPermission(function (permission) {
+          if (permission === "granted") {
+            var notification = new Notification("I got a ticket!");
           }
-        },
-        methods: {
-          removeMacroRequest: function(index) {
-            this.macroList.splice(index, 1);
-          },
-          restartMacroRequest: function(index) {
-            this.macroList[index].status = 'running';
-          },
-          requestMacro: function() {
-            console.log('macro loop is running...');
-            var component = this;
-            var macroList = this.macroList;
-            $(macroList).each(function() {
-              var macro = this;
-
-              // 예약 완료 상태에서 10분 지났을 경우 running으로 변경
-              if (macro.status === 'done') {
-                var diffMillSec = new Date().getTime() - macro.doneTime;
-                if (diffMillSec > 10 * 60 * 1000) {
-                  macro.status = 'running';
-                }
-              }
-
-              // error 나 done일 경우 취소
-              if (macro.status !== 'running') {
-                return true;
-              }
-
-              var startDate = macro.date;
-              var splitedTime = macro.startTime.split(' ')[1].split(':')
-              var startTime = splitedTime[0] + splitedTime[1] + '00';
-              var trainNumber = '0000000' + macro.trainNumber;
-              trainNumber = trainNumber.substring(trainNumber.length - 5);
-              $.post({
-                url:'/reserveTrain',
-                data: {
-                  startDate: macro.date,
-                  startTime: startTime,
-                  trainNumber: trainNumber,
-                  startStation: macro.startStation,
-                  endStation: macro.endStation,
-                  seatType: macro.isCommon ? '1' : '2',
-                },
-                success: function(data, textStatus, request) {
-                  if (data === 'ok') {
-                    macro.status = 'done';
-                    macro.doneTime = new Date().getTime();
-
-                    // 카카오톡 메시지 전송
-                    /*
-                    $.post({
-                      url: '/kakaoMessage'
-                    });*/
-                    // 부모쪽으로 성공 이벤트 전송
-                    component.$emit('macro-success');
-                  } else if (data === 'full') {
-                    console.log(macro.startTime + ' => 매진');
-                  }
-                },
-                error: function(request, textStatus, errorThrown) {
-                  if (request.responseText === 'invalid token') {
-                    component.$emit('invalid-token');
-                  } else if (request.responseText === 'unknown error') {
-                    console.log('알수없는 오류..');
-                  } else if (request.responseText === 'external server error') {
-                    // 외부 서버 에러일 경우에 5번까지 봐줌
-                    if (macro.errorCount) {
-                      if (macro.errorCount > 5) {
-                        macro.status = 'error';
-                        macro.errorReason = 'SRT 홈페이지 에러';
-                        macro.errorCount = null;
-                      } else {
-                        macro.errorCount = macro.errorCount + 1;
-                      }
-                    } else {
-                      macro.errorCount = 1;
-                    }
-                  } else if (request.responseText === 'invalid param') {
-                    macro.status = 'error';
-                    macro.errorReason = '잘못된 정보로 요청하였습니다.';
-                  } else if (request.responseText === 'invalid time') {
-                    macro.status = 'error';
-                    macro.errorReason = '20분 이내의 열차는 예약할 수 없습니다.';
-                  } else {
-                    macro.status = 'error';
-                    macro.errorReason = request.responseText;
-                  }
-                }
-              });
-            });
-          }
-        },
-        created: function() {
-          // 5sec for macro
-          console.log('macro loop is started.');
-          this.macroIntervalPID = setInterval(this.requestMacro, 10000);
-        },
-        beforeDestroy: function() {
-          console.log('macro loop is stopped.');
-          clearInterval(this.macroIntervalPID);
+        });
+      }
+    }
+    Vue.use(Toasted, {
+      position: 'bottom-right',
+      duration: 1500,
+      closeOnSwipe: false
+    });
+    Vue.component('macroList', {
+      template: '#macroList',
+      props: ['macroList'],
+      data: function () {
+        return {
+          macroIntervalPID: ''
         }
-      });
-      Vue.component('alertForm', {
-        template: '#alertForm',
-        data: function() {
-          return {
-            isSoundAlertChecked: true
-          };
+      },
+      methods: {
+        removeMacroRequest: function (index) {
+          this.macroList.splice(index, 1);
         },
-        created: function() {
-          this.$parent.$on('alert-success', this.alertSuccess);
+        restartMacroRequest: function (index) {
+          this.macroList[index].status = 'running';
         },
-        mounted: function() {
+        requestMacro: function () {
+          console.log('macro loop is running...');
           var component = this;
-          /*
-          var loginBtnEl = this.$refs.kakaoLoginBtn;
-          Kakao.Auth.createLoginButton({
-            container: loginBtnEl,
-            success: function(authObj) {
-              $.post({
-                url:'/kakaoLogin',
-                data: {
-                  accessToken: authObj.access_token,
-                  refreshToken: authObj.refresh_token,
-                  expiresIn: authObj.expires_in
-                },
-                success: function(data, textStatus, request) {
-                  component.$emit('kakao-login-success');
+          var macroList = this.macroList;
+          $(macroList).each(function () {
+            var macro = this;
+
+            // 예약 완료 상태에서 10분 지났을 경우 running으로 변경
+            if (macro.status === 'done') {
+              var diffMillSec = new Date().getTime() - macro.doneTime;
+              if (diffMillSec > 10 * 60 * 1000) {
+                macro.status = 'running';
+              }
+            }
+
+            // error 나 done일 경우 취소
+            if (macro.status !== 'running') {
+              return true;
+            }
+
+            var startDate = macro.date;
+            var splitedTime = macro.startTime.split(' ')[1].split(':')
+            var startTime = splitedTime[0] + splitedTime[1] + '00';
+            var trainNumber = '0000000' + macro.trainNumber;
+            trainNumber = trainNumber.substring(trainNumber.length - 5);
+            $.post({
+              url: '/reserveTrain',
+              data: {
+                startDate: macro.date,
+                startTime: startTime,
+                trainNumber: trainNumber,
+                startStation: macro.startStation,
+                endStation: macro.endStation,
+                seatType: macro.isCommon ? '1' : '2',
+              },
+              success: function (data, textStatus, request) {
+                if (data === 'ok') {
+                  macro.status = 'done';
+                  macro.doneTime = new Date().getTime();
+
+                  // 카카오톡 메시지 전송
+                  $.post({
+                    url: '/kakaoMessage'
+                  });
+                  notifyMe();
+                  // 부모쪽으로 성공 이벤트 전송
+                  component.$emit('macro-success');
+                } else if (data === 'full') {
+                  console.log(macro.startTime + ' => 매진');
                 }
-              });
-            },
-            fail: function(err) {
-              alert(JSON.stringify(err));
-            }
-          });*/
-        },
-        methods: {
-          alertSuccess: function() {
-            if (this.isSoundAlertChecked) {
-              this.$refs.alertAudio.play();
-            }
+              },
+              error: function (request, textStatus, errorThrown) {
+                if (request.responseText === 'invalid token') {
+                  component.$emit('invalid-token');
+                } else if (request.responseText === 'unknown error') {
+                  console.log('알수없는 오류..');
+                } else if (request.responseText === 'external server error') {
+                  // 외부 서버 에러일 경우에 5번까지 봐줌
+                  if (macro.errorCount) {
+                    if (macro.errorCount > 5) {
+                      macro.status = 'error';
+                      macro.errorReason = 'SRT 홈페이지 에러';
+                      macro.errorCount = null;
+                    } else {
+                      macro.errorCount = macro.errorCount + 1;
+                    }
+                  } else {
+                    macro.errorCount = 1;
+                  }
+                } else if (request.responseText === 'invalid param') {
+                  macro.status = 'error';
+                  macro.errorReason = '잘못된 정보로 요청하였습니다.';
+                } else if (request.responseText === 'invalid time') {
+                  macro.status = 'error';
+                  macro.errorReason = '20분 이내의 열차는 예약할 수 없습니다.';
+                } else {
+                  macro.status = 'error';
+                  macro.errorReason = request.responseText;
+                }
+              }
+            });
+          });
+        }
+      },
+      created: function () {
+        // 10sec for macro
+        console.log('macro loop is started.');
+        this.macroIntervalPID = setInterval(this.requestMacro, 10000);
+      },
+      beforeDestroy: function () {
+        console.log('macro loop is stopped.');
+        clearInterval(this.macroIntervalPID);
+      }
+    });
+    Vue.component('alertForm', {
+      template: '#alertForm',
+      props: ['isKakaoLogin'],
+      data: function () {
+        return {
+          isSoundAlertChecked: true
+        };
+      },
+      created: function () {
+        this.$parent.$on('alert-success', this.alertSuccess);
+      },
+      mounted: function () {
+        var component = this;
+        var loginBtnEl = this.$refs.kakaoLoginBtn;
+        Kakao.Auth.createLoginButton({
+          container: loginBtnEl,
+          success: function (authObj) {
+            $.post({
+              url: '/kakaoLogin',
+              data: {
+                accessToken: authObj.access_token,
+                refreshToken: authObj.refresh_token,
+                expiresIn: authObj.expires_in
+              },
+              success: function (data, textStatus, request) {
+                component.$emit('kakao-login-success');
+              }
+            });
+          },
+          fail: function (err) {
+            alert(JSON.stringify(err));
+          }
+        });
+      },
+      methods: {
+        alertSuccess: function () {
+          if (this.isSoundAlertChecked) {
+            this.$refs.alertAudio.play();
           }
         }
-      })
-      Vue.component('loading', {
-        template: '#loading'
-      });
-      Vue.component('trainRequestForm', {
-        template: '#trainRequestForm',
-        data: function () {
-          return {
-            stationList: [],
-            timeDiffList: ['00', '02', '04', '06', '08', '10', '12', '14', '16', '18', '20', '22'],
-            selectedStartStation: '',
-            selectedEndStation: '',
-            selectedDate: (new Date()).toISOString().substring(0, 10),
-            selectedTime: '00'
-          }
-        },
-        computed: {
-          checkForm: function() {
-            return this.selectedStartStation !== '' && this.selectedEndStation !== '';
-          }
-        },
-        methods: {
-          getTrainList: function() {
-            var selectedDate = _.clone(this.selectedDate).replace(/-/g, '');
-            var selectedStartStation = this.selectedStartStation;
-            var selectedStartStationName = _.find(this.stationList, function(sl) {
-              return sl.id == selectedStartStation;
-            }).name;
-            var selectedEndStation = this.selectedEndStation;
-            var selectedEndStationName = _.find(this.stationList, function(sl) {
-              return sl.id == selectedEndStation;
-            }).name;
-            $.get({
-              url: '/trainList',
-              data: {
-                startStation: selectedStartStationName,
-                startStationNumber: selectedStartStation,
-                endStation: selectedEndStationName,
-                endStationNumber: selectedEndStation,
-                requestDate: selectedDate,
-                requestTime: this.selectedTime + '00'
-              },
-              success: function(data, textStatus, request) {
-                this.$emit('train-searched', {
-                  date: selectedDate,
-                  startStation: selectedStartStation,
-                  endStation: selectedEndStation, 
-                  trainData: data
-                });
-              }.bind(this),
-              error: function(request, textStatus, errorThrown) {}.bind(this)
-            })
-          }
-        },
-        created: function() {
+      }
+    })
+    Vue.component('loading', {
+      template: '#loading'
+    });
+    Vue.component('trainRequestForm', {
+      template: '#trainRequestForm',
+      data: function () {
+        return {
+          stationList: [],
+          timeDiffList: ['00', '02', '04', '06', '08', '10', '12', '14', '16', '18', '20', '22'],
+          selectedStartStation: '',
+          selectedEndStation: '',
+          selectedDate: (new Date()).toISOString().substring(0, 10),
+          selectedTime: '00'
+        }
+      },
+      computed: {
+        checkForm: function () {
+          return this.selectedStartStation !== '' && this.selectedEndStation !== '';
+        }
+      },
+      methods: {
+        getTrainList: function () {
+          var selectedDate = _.clone(this.selectedDate).replace(/-/g, '');
+          var selectedStartStation = this.selectedStartStation;
+          var selectedStartStationName = _.find(this.stationList, function (sl) {
+            return sl.id == selectedStartStation;
+          }).name;
+          var selectedEndStation = this.selectedEndStation;
+          var selectedEndStationName = _.find(this.stationList, function (sl) {
+            return sl.id == selectedEndStation;
+          }).name;
           $.get({
-            url:'/stationList',
-            success: function(data, textStatus, request) {
-              this.stationList = data;
+            url: '/trainList',
+            data: {
+              startStation: selectedStartStationName,
+              startStationNumber: selectedStartStation,
+              endStation: selectedEndStationName,
+              endStationNumber: selectedEndStation,
+              requestDate: selectedDate,
+              requestTime: this.selectedTime + '00'
+            },
+            success: function (data, textStatus, request) {
+              this.$emit('train-searched', {
+                date: selectedDate,
+                startStation: selectedStartStation,
+                endStation: selectedEndStation,
+                trainData: data
+              });
             }.bind(this),
-            error: function(request, textStatus, errorThrown) {}.bind(this)
+            error: function (request, textStatus, errorThrown) { }.bind(this)
           })
         }
-      });
-      Vue.component('trainList', {
-        template: '#trainList',
-        data: function() {
-          return {}
-        },
-        props: ['trainList'],
-        methods: {
-          addMacro: function(data, isCommon) {
-            var endTime = data.endTime;
-            var startTime = data.startTime;
-            var trainNumber = data.trainNumber;
-            this.$emit('add-macro', {
-              endTime: endTime,
-              startTime: startTime,
-              trainNumber: trainNumber,
-              isCommon: isCommon
-            });
-          }
+      },
+      created: function () {
+        $.get({
+          url: '/stationList',
+          success: function (data, textStatus, request) {
+            this.stationList = data;
+          }.bind(this),
+          error: function (request, textStatus, errorThrown) { }.bind(this)
+        })
+      }
+    });
+    Vue.component('trainList', {
+      template: '#trainList',
+      data: function () {
+        return {}
+      },
+      props: ['trainList'],
+      methods: {
+        addMacro: function (data, isCommon) {
+          var endTime = data.endTime;
+          var startTime = data.startTime;
+          var trainNumber = data.trainNumber;
+          this.$emit('add-macro', {
+            endTime: endTime,
+            startTime: startTime,
+            trainNumber: trainNumber,
+            isCommon: isCommon
+          });
         }
-      });
-      Vue.component('loginForm', {
-        template: '#loginForm',
-        data: function() {
-          return {
-            userNumber: "",
-            userPassword: ""
-          }
-        },
-        methods: {
-          login: function() {
-            $.post({
-              url:'/login',
-              data: {
-                userNumber: this.userNumber,
-                userPassword: this.userPassword
-              },
-              success: function(data, textStatus, request) {
-                this.$emit('login-succeed');
-              }.bind(this),
-              error: function(request, textStatus, errorThrown) {
-                alert('유저 번호나 비밀번호가 틀렸습니다.');
-              }.bind(this)
-            });
-          }
+      }
+    });
+    Vue.component('loginForm', {
+      template: '#loginForm',
+      data: function () {
+        return {
+          userNumber: "",
+          userPassword: ""
         }
-      });
-      new Vue({
-        el: '#app',
-        data: {
-          isLogin: false,
-          initialized: false,
-          trainSearchRequested: false,
-          searchedTrain: [],
-          searchedDate: "",
-          searchedStartStation: "",
-          searchedEndStation:"",
-          macroList: [],
-          isKakaoLogin: false
-        },
-        methods: {
-          loginSucceed: function() {
-            this.isLogin = true;
-          },
-          logout: function() {
-            $.post({
-              url:'/logout',
-              success: function(data, textStatus, request) {
-                this.isLogin = false;
-                this.isKakaoLogin = false;
-                this.searchedTrain = [];
-                this.macroList = [];
-              }.bind(this),
-              error: function(request, textStatus, errorThrown) {
-              }.bind(this)
-            })
-          },
-          handleInvalidToken: function() {
-            this.isLogin = false;
-            this.isKakaoLogin = false;
-            this.searchedTrain = [];
-            this.macroList = [];
-            this.errorToast('세션이 만료되었습니다.');
-          },
-          trainSearched: function(data) {
-            this.searchedTrain = data.trainData;
-            this.searchedDate = data.date;
-            this.searchedStartStation = data.startStation;
-            this.searchedEndStation = data.endStation;
-            this.trainSearchRequested = true;
-          },
-          showToast: function(message) {
-            this.$toasted.show(message);
-          },
-          errorToast: function(message) {
-            this.$toasted.error(message);
-          },
-          successToast: function(message) {
-            this.$toasted.success(message);
-          },
-          kakaoLoginSuccess: function() {
-            this.isKakaoLogin = true;
-          },
-          handleMacroSuccess: function() {
-            this.$emit('alert-success');
-          },
-          addMacro: function(data) {
-            if (this.macroList.length >= 10) {
-              this.errorToast('최대 10개까지 등록 가능합니다.');
-              return;
-            }
-            this.macroList.push({
-              date: this.searchedDate,
-              startStation: this.searchedStartStation,
-              endStation: this.searchedEndStation,
-              startTime: data.startTime,
-              endTime: data.endTime,
-              trainNumber: data.trainNumber,
-              isCommon: data.isCommon,
-              status: 'running'
-            });
-            this.successToast('메크로 리스트에 등록되었습니다.');
-          }
-        },
-        created: function() {
+      },
+      methods: {
+        login: function () {
           $.post({
-            url:'/checkLogin',
-            success: function(data, textStatus, request) {
-              this.isLogin = true
+            url: '/login',
+            data: {
+              userNumber: this.userNumber,
+              userPassword: this.userPassword
+            },
+            success: function (data, textStatus, request) {
+              this.$emit('login-succeed');
             }.bind(this),
-            error: function(request, textStatus, errorThrown) {
-              this.isLogin = false
-            }.bind(this),
-            complete: function() {
-              this.initialized = true
+            error: function (request, textStatus, errorThrown) {
+              alert('유저 번호나 비밀번호가 틀렸습니다.');
             }.bind(this)
           });
         }
-      });
-    </script>
-  </body>
+      }
+    });
+    new Vue({
+      el: '#app',
+      data: {
+        isLogin: false,
+        initialized: false,
+        trainSearchRequested: false,
+        searchedTrain: [],
+        searchedDate: "",
+        searchedStartStation: "",
+        searchedEndStation: "",
+        macroList: [],
+        isKakaoLogin: false
+      },
+      methods: {
+        loginSucceed: function () {
+          this.isLogin = true;
+        },
+        logout: function () {
+          $.post({
+            url: '/logout',
+            success: function (data, textStatus, request) {
+              this.isLogin = false;
+              this.isKakaoLogin = false;
+              this.searchedTrain = [];
+              this.macroList = [];
+            }.bind(this),
+            error: function (request, textStatus, errorThrown) {
+            }.bind(this)
+          })
+        },
+        handleInvalidToken: function () {
+          this.isLogin = false;
+          this.isKakaoLogin = false;
+          this.searchedTrain = [];
+          this.macroList = [];
+          this.errorToast('세션이 만료되었습니다.');
+        },
+        trainSearched: function (data) {
+          this.searchedTrain = data.trainData;
+          this.searchedDate = data.date;
+          this.searchedStartStation = data.startStation;
+          this.searchedEndStation = data.endStation;
+          this.trainSearchRequested = true;
+        },
+        showToast: function (message) {
+          this.$toasted.show(message);
+        },
+        errorToast: function (message) {
+          this.$toasted.error(message);
+        },
+        successToast: function (message) {
+          this.$toasted.success(message);
+        },
+        kakaoLoginSuccess: function () {
+          this.isKakaoLogin = true;
+        },
+        handleMacroSuccess: function () {
+          this.$emit('alert-success');
+        },
+        addMacro: function (data) {
+          if (this.macroList.length >= 10) {
+            this.errorToast('최대 10개까지 등록 가능합니다.');
+            return;
+          }
+          this.macroList.push({
+            date: this.searchedDate,
+            startStation: this.searchedStartStation,
+            endStation: this.searchedEndStation,
+            startTime: data.startTime,
+            endTime: data.endTime,
+            trainNumber: data.trainNumber,
+            isCommon: data.isCommon,
+            status: 'running'
+          });
+          this.successToast('메크로 리스트에 등록되었습니다.');
+        }
+      },
+      created: function () {
+        $.post({
+          url: '/checkLogin',
+          success: function (data, textStatus, request) {
+            this.isLogin = true
+          }.bind(this),
+          error: function (request, textStatus, errorThrown) {
+            this.isLogin = false
+          }.bind(this),
+          complete: function () {
+            this.initialized = true
+          }.bind(this)
+        });
+      }
+    });
+  </script>
+</body>
+
 </html>

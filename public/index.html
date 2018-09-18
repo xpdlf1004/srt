@@ -233,13 +233,6 @@
       else if (Notification.permission === "granted") {
         var notification = new Notification("I got a ticket!");
       }
-      else if (Notification.permission !== 'denied' || Notification.permission === "default") {
-        Notification.requestPermission(function (permission) {
-          if (permission === "granted") {
-            var notification = new Notification("I got a ticket!");
-          }
-        });
-      }
     }
     Vue.use(Toasted, {
       position: 'bottom-right',
@@ -522,6 +515,13 @@
       methods: {
         loginSucceed: function () {
           this.isLogin = true;
+          if (Notification.permission === "default") {
+            Notification.requestPermission(function (permission) {
+              if (permission === "granted") {
+                var notification = new Notification("티켓이 잡히면 알려드릴게요:)");
+              }
+            });
+          }
         },
         logout: function () {
           $.post({

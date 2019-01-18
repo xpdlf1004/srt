@@ -23,29 +23,29 @@
 
 <script>
 export default {
-  name: 'loginForm',
-  data: function () {
+  name: "loginForm",
+  data: function() {
     return {
       userNumber: "",
       userPassword: ""
-    }
+    };
   },
   methods: {
-    login: function () {
+    login: function() {
       $.post({
-        url: '/login',
+        url: "/login",
         data: {
           userNumber: this.userNumber,
           userPassword: this.userPassword
         },
-        success: function (data, textStatus, request) {
-          this.$emit('login-succeed');
+        success: function(data, textStatus, request) {
+          this.$emit("login-succeed");
         }.bind(this),
-        error: function (request, textStatus, errorThrown) {
-          alert('유저 번호나 비밀번호가 틀렸습니다.');
+        error: function(request, textStatus, errorThrown) {
+          alert("유저 번호나 비밀번호가 틀렸습니다.");
         }.bind(this)
       });
     }
   }
-}
+};
 </script>

@@ -21,45 +21,45 @@
 
 <script>
 export default {
-  name: 'alertForm',
-  props: ['isKakaoLogin'],
-  data: function () {
+  name: "alertForm",
+  props: ["isKakaoLogin"],
+  data: function() {
     return {
       isSoundAlertChecked: true
     };
   },
-  created: function () {
-    this.$parent.$on('alert-success', this.alertSuccess);
+  created: function() {
+    this.$parent.$on("alert-success", this.alertSuccess);
   },
-  mounted: function () {
+  mounted: function() {
     var component = this;
     var loginBtnEl = this.$refs.kakaoLoginBtn;
     Kakao.Auth.createLoginButton({
       container: loginBtnEl,
-      success: function (authObj) {
+      success: function(authObj) {
         $.post({
-          url: '/kakaoLogin',
+          url: "/kakaoLogin",
           data: {
             accessToken: authObj.access_token,
             refreshToken: authObj.refresh_token,
             expiresIn: authObj.expires_in
           },
-          success: function (data, textStatus, request) {
-            component.$emit('kakao-login-success');
+          success: function(data, textStatus, request) {
+            component.$emit("kakao-login-success");
           }
         });
       },
-      fail: function (err) {
+      fail: function(err) {
         alert(JSON.stringify(err));
       }
     });
   },
   methods: {
-    alertSuccess: function () {
+    alertSuccess: function() {
       if (this.isSoundAlertChecked) {
         this.$refs.alertAudio.play();
       }
     }
   }
-}
+};
 </script>

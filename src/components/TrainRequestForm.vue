@@ -32,65 +32,77 @@
 </template>
 
 <script>
-
 export default {
-  name: 'trainRequestForm',
-  data: function () {
+  name: "trainRequestForm",
+  data: function() {
     return {
       stationList: [],
-      timeDiffList: ['00', '02', '04', '06', '08', '10', '12', '14', '16', '18', '20', '22'],
-      selectedStartStation: '',
-      selectedEndStation: '',
-      selectedDate: (new Date()).toISOString().substring(0, 10),
-      selectedTime: '00'
-    }
+      timeDiffList: [
+        "00",
+        "02",
+        "04",
+        "06",
+        "08",
+        "10",
+        "12",
+        "14",
+        "16",
+        "18",
+        "20",
+        "22"
+      ],
+      selectedStartStation: "",
+      selectedEndStation: "",
+      selectedDate: new Date().toISOString().substring(0, 10),
+      selectedTime: "00"
+    };
   },
   computed: {
-    checkForm: function () {
-      return this.selectedStartStation !== '' && this.selectedEndStation !== '';
+    checkForm: function() {
+      return this.selectedStartStation !== "" && this.selectedEndStation !== "";
     }
   },
   methods: {
-    getTrainList: function () {
-      var selectedDate = _.clone(this.selectedDate).replace(/-/g, '');
+    getTrainList: function() {
+      var selectedDate = _.clone(this.selectedDate).replace(/-/g, "");
       var selectedStartStation = this.selectedStartStation;
-      var selectedStartStationName = _.find(this.stationList, function (sl) {
+      var selectedStartStationName = _.find(this.stationList, function(sl) {
         return sl.id == selectedStartStation;
       }).name;
       var selectedEndStation = this.selectedEndStation;
-      var selectedEndStationName = _.find(this.stationList, function (sl) {
+      var selectedEndStationName = _.find(this.stationList, function(sl) {
         return sl.id == selectedEndStation;
       }).name;
       $.get({
-        url: '/trainList',
+        url: "/trainList",
         data: {
           startStation: selectedStartStationName,
           startStationNumber: selectedStartStation,
           endStation: selectedEndStationName,
           endStationNumber: selectedEndStation,
           requestDate: selectedDate,
-          requestTime: this.selectedTime + '00'
+          requestTime: this.selectedTime + "00"
         },
-        success: function (data, textStatus, request) {
-          this.$emit('train-searched', {
+        success: function(data, textStatus, request) {
+          this.$emit("train-searched", {
             date: selectedDate,
             startStation: selectedStartStation,
             endStation: selectedEndStation,
             trainData: data
           });
         }.bind(this),
-        error: function (request, textStatus, errorThrown) { }.bind(this)
-      })
+        error: function(request, textStatus, errorThrown) {}.bind(this)
+      });
     }
   },
-  created: function () {
+  created: function() {
     $.get({
-      url: '/stationList',
-      success: function (data, textStatus, request) {
+      url: "/stationList",
+      success: function(data, textStatus, request) {
         this.stationList = data;
       }.bind(this),
-      error: function (request, textStatus, errorThrown) { }.bind(this)
-    })
+      error: function(request, textStatus, errorThrown) {}.bind(this)
+    });
   }
-}
+};
 </script>

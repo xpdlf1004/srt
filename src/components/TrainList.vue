@@ -29,19 +29,18 @@
 </template>
 
 <script>
-
 export default {
-  name: 'trainList',
-  data: function () {
-    return {}
+  name: "trainList",
+  data: function() {
+    return {};
   },
-  props: ['trainList'],
+  props: ["trainList"],
   methods: {
-    addMacro: function (data, isCommon) {
+    addMacro: function(data, isCommon) {
       var endTime = data.endTime;
       var startTime = data.startTime;
       var trainNumber = data.trainNumber;
-      this.$emit('add-macro', {
+      this.$emit("add-macro", {
         endTime: endTime,
         startTime: startTime,
         trainNumber: trainNumber,
@@ -49,5 +48,5 @@ export default {
       });
     }
   }
-}
+};
 </script>

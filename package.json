@@ -8,7 +8,8 @@
     "start": "node app.js",
     "dev": "echo 'this command not working'; #cross-env NODE_ENV=development webpack-dev-server --open --hot",
     "build": "cross-env NODE_ENV=production webpack --progress --hide-modules",
-    "dev-build": "cross-env NODE_ENV=development webpack --progress --hide-modules"
+    "dev-build": "cross-env NODE_ENV=development webpack --progress --hide-modules",
+    "fmt": "prettier '{src, scripts}/**/*.{ts,js,json,vue}' --write"
   },
   "browserslist": [
     "> 1%",

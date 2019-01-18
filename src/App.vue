@@ -54,21 +54,27 @@ import TrainRequestForm from "./components/TrainRequestForm.vue";
 function notifyMe() {
   if (!("Notification" in window)) {
     console.log("This browser does not support desktop notification");
-  }
-  else if (Notification.permission === "granted") {
+  } else if (Notification.permission === "granted") {
     var notification = new Notification("I got a ticket!");
   }
 }
 
 Vue.use(Toasted, {
-  position: 'bottom-right',
+  position: "bottom-right",
   duration: 1500,
   closeOnSwipe: false
 });
 
 export default {
   name: "App",
-  components: { AlertForm, Loading, LoginForm, MacroList, TrainList, TrainRequestForm },
+  components: {
+    AlertForm,
+    Loading,
+    LoginForm,
+    MacroList,
+    TrainList,
+    TrainRequestForm
+  },
   data: () => ({
     isLogin: false,
     initialized: false,
@@ -81,61 +87,60 @@ export default {
     isKakaoLogin: false
   }),
   methods: {
-    loginSucceed: function () {
+    loginSucceed: function() {
       this.isLogin = true;
       if (Notification.permission === "default") {
-        Notification.requestPermission(function (permission) {
+        Notification.requestPermission(function(permission) {
           if (permission === "granted") {
             var notification = new Notification("티켓이 잡히면 알려드릴게요:)");
           }
         });
       }
     },
-    logout: function () {
+    logout: function() {
       $.post({
-        url: '/logout',
-        success: function (data, textStatus, request) {
+        url: "/logout",
+        success: function(data, textStatus, request) {
           this.isLogin = false;
           this.isKakaoLogin = false;
           this.searchedTrain = [];
           this.macroList = [];
         }.bind(this),
-        error: function (request, textStatus, errorThrown) {
-        }.bind(this)
-      })
+        error: function(request, textStatus, errorThrown) {}.bind(this)
+      });
     },
-    handleInvalidToken: function () {
+    handleInvalidToken: function() {
       this.isLogin = false;
       this.isKakaoLogin = false;
       this.searchedTrain = [];
       this.macroList = [];
-      this.errorToast('세션이 만료되었습니다.');
+      this.errorToast("세션이 만료되었습니다.");
     },
-    trainSearched: function (data) {
+    trainSearched: function(data) {
       this.searchedTrain = data.trainData;
       this.searchedDate = data.date;
       this.searchedStartStation = data.startStation;
       this.searchedEndStation = data.endStation;
       this.trainSearchRequested = true;
     },
-    showToast: function (message) {
+    showToast: function(message) {
       this.$toasted.show(message);
     },
-    errorToast: function (message) {
+    errorToast: function(message) {
       this.$toasted.error(message);
     },
-    successToast: function (message) {
+    successToast: function(message) {
       this.$toasted.success(message);
     },
-    kakaoLoginSuccess: function () {
+    kakaoLoginSuccess: function() {
       this.isKakaoLogin = true;
     },
-    handleMacroSuccess: function () {
-      this.$emit('alert-success');
+    handleMacroSuccess: function() {
+      this.$emit("alert-success");
     },
-    addMacro: function (data) {
+    addMacro: function(data) {
       if (this.macroList.length >= 10) {
-        this.errorToast('최대 10개까지 등록 가능합니다.');
+        this.errorToast("최대 10개까지 등록 가능합니다.");
         return;
       }
       this.macroList.push({
@@ -146,25 +151,24 @@ export default {
         endTime: data.endTime,
         trainNumber: data.trainNumber,
         isCommon: data.isCommon,
-        status: 'running'
+        status: "running"
       });
-      this.successToast('메크로 리스트에 등록되었습니다.');
+      this.successToast("메크로 리스트에 등록되었습니다.");
     }
   },
-  created: function () {
+  created: function() {
     $.post({
-      url: '/checkLogin',
-      success: function (data, textStatus, request) {
-        this.isLogin = true
+      url: "/checkLogin",
+      success: function(data, textStatus, request) {
+        this.isLogin = true;
       }.bind(this),
-      error: function (request, textStatus, errorThrown) {
-        this.isLogin = false
+      error: function(request, textStatus, errorThrown) {
+        this.isLogin = false;
       }.bind(this),
-      complete: function () {
-        this.initialized = true
+      complete: function() {
+        this.initialized = true;
       }.bind(this)
     });
   }
-}
-
+};
 </script>

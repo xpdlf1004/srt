@@ -3,7 +3,7 @@
     <h4>메크로 리스트</h4>
     <p v-if="macroList.length === 0">등록된 메크로가 없습니다.</p>
     <ul class="list-inline">
-      <li class="list-inline-item" v-for="(macro, index) in macroList">
+      <li class="list-inline-item" v-for="(macro, index) in macroList" :key="index">
         <div class="card mb-2">
           <div class="card-body">
             <h5 class="card-title">

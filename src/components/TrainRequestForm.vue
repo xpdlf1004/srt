@@ -5,15 +5,23 @@
       <div class="form-group">
         <label for="stationSelectStart">출발지</label>
         <select class="form-control" id="stationSelectStart" v-model="selectedStartStation">
-          <option disabled value="">선택</option>
-          <option v-for="station in stationList" :key="station.id" v-bind:value="station.id">{{station.name}}</option>
+          <option disabled value>선택</option>
+          <option
+            v-for="station in stationList"
+            :key="station.id"
+            v-bind:value="station.id"
+          >{{station.name}}</option>
         </select>
       </div>
       <div class="form-group">
         <label for="stationSelectEnd">도착지</label>
         <select class="form-control" id="stationSelectEnd" v-model="selectedEndStation">
-          <option disabled value="">선택</option>
-          <option v-for="station in stationList" :key="station.id" v-bind:value="station.id">{{station.name}}</option>
+          <option disabled value>선택</option>
+          <option
+            v-for="station in stationList"
+            :key="station.id"
+            v-bind:value="station.id"
+          >{{station.name}}</option>
         </select>
       </div>
       <div class="form-group">
@@ -23,10 +31,15 @@
       <div class="form-group">
         <label for="timeSelect">시간</label>
         <select class="form-control" id="timeSelect" v-model="selectedTime">
-          <option v-for="timeDiff in timeDiffList">{{timeDiff}}</option>
+          <option v-for="(timeDiff, index) in timeDiffList" :key="index">{{timeDiff}}</option>
         </select>
       </div>
-      <button type="submit" class="btn btn-primary" :disabled="!checkForm" @click.prevent="getTrainList">조회</button>
+      <button
+        type="submit"
+        class="btn btn-primary"
+        :disabled="!checkForm"
+        @click.prevent="getTrainList"
+      >조회</button>
     </form>
   </div>
 </template>

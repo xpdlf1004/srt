@@ -14,13 +14,17 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="train in trainList">
+          <tr v-for="(train, index) in trainList" :key="index">
             <th scope="row">{{train.trainNumber}}</th>
             <td>{{train.startTime}}</td>
             <td>{{train.endTime}}</td>
             <td>{{train.duration}}</td>
-            <td><button type="button" class="btn btn-success" @click="addMacro(train, true)">등록</button></td>
-            <td><button type="button" class="btn btn-success" @click="addMacro(train, false)">등록</button></td>
+            <td>
+              <button type="button" class="btn btn-success" @click="addMacro(train, true)">등록</button>
+            </td>
+            <td>
+              <button type="button" class="btn btn-success" @click="addMacro(train, false)">등록</button>
+            </td>
           </tr>
         </tbody>
       </table>
